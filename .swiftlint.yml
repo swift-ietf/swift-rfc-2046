@@ -1,16 +1,64 @@
 disabled_rules:
   - line_length
-  - function_body_length
-  - type_body_length
-  - file_length
-  - redundant_discardable_let
   - trailing_comma
-  - type_name
-  - identifier_name
+  - redundant_discardable_let
+
 opt_in_rules:
   - explicit_init
+  - closure_spacing
+  - empty_count
+  - empty_string
+  - fatal_error_message
+  - first_where
+  - joined_default_parameter
+  - operator_usage_whitespace
+  - overridden_super_call
+
 included:
   - Sources
   - Tests
+
 excluded:
   - .build
+  - Carthage
+  - Pods
+  - fastlane
+
+# Type body length settings
+type_body_length:
+  warning: 500
+  error: 600
+
+# File length settings
+file_length:
+  warning: 800
+  error: 1000
+  ignore_comment_only_lines: true
+
+# Function body length settings
+function_body_length:
+  warning: 100
+  error: 120
+
+# Function parameter count
+function_parameter_count:
+  warning: 6
+  error: 8
+
+# Cyclomatic complexity
+cyclomatic_complexity:
+  warning: 15
+  error: 20
+
+# Identifier name settings
+identifier_name:
+  min_length:
+    warning: 2
+  max_length:
+    warning: 50
+    error: 60
+  excluded:
+    - id
+    - URL
+    - to
+    - db

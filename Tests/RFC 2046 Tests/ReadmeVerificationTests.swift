@@ -73,33 +73,20 @@ struct ReadmeVerificationTests {
         #expect(multipart.parts.count == 2)
     }
 
-    @Test("Example from README: Multipart/Form-Data (HTTP File Upload)")
-    func exampleFormData() throws {
-        // From README lines 157-179
-        let imageData = Data([0xFF, 0xD8, 0xFF, 0xE0])  // Minimal JPEG header
-
-        let formData = try RFC_2046.Multipart.formData(
-            fields: [
-                "username": "john_doe",
-                "email": "john@example.com",
-            ],
-            files: [
-                try .init(
-                    fieldName: "avatar",
-                    filename: "photo.jpg",
-                    contentType: RFC_2045.ContentType(type: "image", subtype: "jpeg"),
-                    transferEncoding: .base64,
-                    content: imageData
-                )
-            ]
+    @Test("Example from README: Rendering Messages")
+    func exampleRendering() throws {
+        // From README - rendering multipart message
+        let multipart = try RFC_2046.Multipart.alternative(
+            textContent: "Hello",
+            htmlContent: "<h1>Hello</h1>"
         )
 
-        let contentType = formData.contentType.headerValue
-        #expect(contentType.hasPrefix("multipart/form-data; boundary="))
+        let contentType = multipart.contentType.headerValue
+        #expect(contentType.hasPrefix("multipart/alternative; boundary="))
 
-        let body = formData.render()
-        #expect(body.contains("john_doe"))
-        #expect(body.contains("john@example.com"))
-        #expect(body.contains("photo.jpg"))
+        let body = multipart.render()
+        #expect(body.contains("Hello"))
+        #expect(body.contains("<h1>Hello</h1>"))
+        #expect(body.contains("--"))  // Contains boundary markers
     }
 }
