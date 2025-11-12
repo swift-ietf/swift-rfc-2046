@@ -62,3 +62,8 @@ identifier_name:
     - URL
     - to
     - db
+
+# Type name settings - allow RFC_XXXX pattern
+type_name:
+  allowed_symbols:
+    - "_"
