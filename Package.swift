@@ -17,7 +17,7 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(path: "../swift-rfc-2045")
+        .package(url: "https://github.com/swift-standards/swift-rfc-2045", branch: "main")
     ],
     targets: [
         .target(
