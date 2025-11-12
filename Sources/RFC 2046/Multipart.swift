@@ -148,7 +148,16 @@ extension RFC_2046 {
         }
 
         /// Generates a unique boundary string
-        private static func generateBoundary() -> String {
+        ///
+        /// Returns a boundary string that conforms to RFC 2046 requirements:
+        /// - Maximum 70 characters
+        /// - Uses only characters from the bcharsnospace set
+        /// - Guaranteed to be unique using UUID
+        ///
+        /// The format is `----=_Part_{UUID}` which is 46 characters total.
+        ///
+        /// - Returns: A unique boundary string
+        public static func generateBoundary() -> String {
             "----=_Part_\(UUID().uuidString)"
         }
     }
