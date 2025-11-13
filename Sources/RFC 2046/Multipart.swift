@@ -118,6 +118,8 @@ extension RFC_2046 {
         /// - `base64`: Content is base64-encoded
         /// - `quoted-printable`: Content is quoted-printable encoded
         /// - Other encodings: Content is treated as-is (must be valid UTF-8 or 7-bit ASCII)
+        ///
+        /// Per RFC 2046 Section 5.1.1, the output includes a trailing CRLF after the final boundary.
         public func render() -> String {
             var lines: [String] = []
 
@@ -144,7 +146,8 @@ extension RFC_2046 {
                 lines.append(epilogue)
             }
 
-            return lines.joined(separator: "\r\n")
+            // RFC 2046 Section 5.1.1: There must be a CRLF at the end of the last line
+            return lines.joined(separator: "\r\n") + "\r\n"
         }
 
         /// Generates a unique boundary string
