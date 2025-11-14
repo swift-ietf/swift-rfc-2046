@@ -163,6 +163,104 @@ extension RFC_2046 {
         public static func generateBoundary() -> String {
             "----=_Part_\(UUID().uuidString)"
         }
+
+        /// Parses multipart data from a string
+        ///
+        /// Extracts body parts separated by boundary delimiters.
+        ///
+        /// - Parameters:
+        ///   - string: The multipart message body as a string
+        ///   - boundary: The boundary string separating parts
+        ///   - subtype: The multipart subtype (default: .mixed)
+        /// - Returns: A Multipart instance containing the parsed parts
+        /// - Throws: `RFC_2046.MultipartError.invalidFormat` if parsing fails
+        public static func parse(
+            _ string: String,
+            boundary: String,
+            subtype: Subtype = .mixed
+        ) throws -> Self {
+            // Split on boundary delimiters
+            let delimiter = "--\(boundary)"
+            let finalDelimiter = "--\(boundary)--"
+
+            var parts: [BodyPart] = []
+            var preamble: String?
+            var epilogue: String?
+
+            // Split the content by CRLF (or LF for robustness)
+            let lines = string.components(separatedBy: "\r\n")
+
+            var currentSection: [String] = []
+            var inPreamble = true
+            var inPart = false
+            var partHeaders: [String: String] = [:]
+            var partContent: [String] = []
+
+            for line in lines {
+                if line == delimiter {
+                    // Start of new part
+                    if inPart {
+                        // Save previous part
+                        let content = partContent.joined(separator: "\r\n")
+                        parts.append(BodyPart(headers: partHeaders, text: content))
+                    }
+                    if inPreamble {
+                        preamble = currentSection.isEmpty ? nil : currentSection.joined(separator: "\r\n")
+                        inPreamble = false
+                    }
+                    inPart = true
+                    partHeaders = [:]
+                    partContent = []
+                    currentSection = []
+                } else if line == finalDelimiter {
+                    // End of multipart
+                    if inPart {
+                        let content = partContent.joined(separator: "\r\n")
+                        parts.append(BodyPart(headers: partHeaders, text: content))
+                    }
+                    inPart = false
+                } else if inPart {
+                    // Inside a part
+                    if line.isEmpty && partHeaders.isEmpty {
+                        // Empty line after headers starts content
+                        continue
+                    } else if line.isEmpty {
+                        // Already in content - this is content
+                        partContent.append(line)
+                    } else if partHeaders.isEmpty || line.contains(":") {
+                        // Parse header
+                        if let colonIndex = line.firstIndex(of: ":") {
+                            let headerName = String(line[..<colonIndex]).trimmingCharacters(in: .whitespaces)
+                            let headerValue = String(line[line.index(after: colonIndex)...]).trimmingCharacters(in: .whitespaces)
+                            partHeaders[headerName] = headerValue
+                        } else if !partHeaders.isEmpty {
+                            // Already have headers, so this is content
+                            partContent.append(line)
+                        }
+                    } else {
+                        // Content line
+                        partContent.append(line)
+                    }
+                } else if inPreamble {
+                    currentSection.append(line)
+                } else {
+                    // Epilogue
+                    if epilogue == nil {
+                        epilogue = line
+                    } else {
+                        epilogue! += "\r\n" + line
+                    }
+                }
+            }
+
+            return try Self(
+                subtype: subtype,
+                parts: parts,
+                boundary: boundary,
+                preamble: preamble,
+                epilogue: epilogue
+            )
+        }
     }
 }
 
