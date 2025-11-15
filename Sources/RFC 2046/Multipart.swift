@@ -188,18 +188,18 @@ extension RFC_2046 {
         ///
         /// - Parameters:
         ///   - string: The multipart message body as a string
-        ///   - boundary: The boundary string separating parts
+        ///   - boundary: The validated boundary separating parts
         ///   - subtype: The multipart subtype (default: .mixed)
         /// - Returns: A Multipart instance containing the parsed parts
         /// - Throws: `RFC_2046.MultipartError.invalidFormat` if parsing fails
         public static func parse(
             _ string: String,
-            boundary: String,
+            boundary: Boundary,
             subtype: Subtype = .mixed
         ) throws -> Self {
             // Split on boundary delimiters
-            let delimiter = "--\(boundary)"
-            let finalDelimiter = "--\(boundary)--"
+            let delimiter = "--\(boundary.value)"
+            let finalDelimiter = "--\(boundary.value)--"
 
             var parts: [BodyPart] = []
             var preamble: String?
