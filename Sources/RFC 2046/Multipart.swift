@@ -38,8 +38,10 @@ extension RFC_2046 {
         /// Body parts
         public let parts: [BodyPart]
 
-        /// Boundary string for separating parts
-        public let boundary: String
+        /// Boundary for separating parts
+        ///
+        /// A validated boundary string conforming to RFC 2046 requirements.
+        public let boundary: Boundary
 
         /// Optional preamble (text before first boundary)
         public let preamble: String?
@@ -58,17 +60,16 @@ extension RFC_2046 {
         /// - Parameters:
         ///   - subtype: Multipart subtype
         ///   - parts: Body parts (must not be empty)
-        ///   - boundary: Custom boundary (auto-generated if nil, must be 1-70 chars if provided)
+        ///   - boundary: Custom boundary (auto-generated if nil)
         ///   - preamble: Optional preamble text
         ///   - epilogue: Optional epilogue text
         ///   - additionalParameters: Additional Content-Type parameters (e.g., type, start for RFC 2387)
         ///
         /// - Throws: `RFC_2046.MultipartError.emptyParts` if parts array is empty
-        /// - Throws: `RFC_2046.MultipartError.boundaryTooLong` if boundary exceeds 70 characters
         public init(
             subtype: Subtype,
             parts: [BodyPart],
-            boundary: String? = nil,
+            boundary: Boundary? = nil,
             preamble: String? = nil,
             epilogue: String? = nil,
             additionalParameters: [String: String] = [:]
@@ -77,27 +78,57 @@ extension RFC_2046 {
                 throw RFC_2046.MultipartError.emptyParts
             }
 
-            let resolvedBoundary = boundary ?? Self.generateBoundary()
-            guard (1...70).contains(resolvedBoundary.count) else {
-                throw RFC_2046.MultipartError.boundaryTooLong(
-                    resolvedBoundary,
-                    length: resolvedBoundary.count
-                )
-            }
-
             self.subtype = subtype
             self.parts = parts
-            self.boundary = resolvedBoundary
+            self.boundary = boundary ?? Boundary()
             self.preamble = preamble
             self.epilogue = epilogue
             self.additionalParameters = additionalParameters
+        }
+
+        /// Creates a multipart message with a string boundary
+        ///
+        /// Convenience initializer that validates and converts a string boundary.
+        ///
+        /// - Parameters:
+        ///   - subtype: Multipart subtype
+        ///   - parts: Body parts (must not be empty)
+        ///   - boundary: Custom boundary string (auto-generated if nil, validated if provided)
+        ///   - preamble: Optional preamble text
+        ///   - epilogue: Optional epilogue text
+        ///   - additionalParameters: Additional Content-Type parameters
+        ///
+        /// - Throws: `RFC_2046.MultipartError` if validation fails
+        public init(
+            subtype: Subtype,
+            parts: [BodyPart],
+            boundary: String?,
+            preamble: String? = nil,
+            epilogue: String? = nil,
+            additionalParameters: [String: String] = [:]
+        ) throws {
+            let validatedBoundary: Boundary
+            if let boundary = boundary {
+                validatedBoundary = try Boundary(boundary)
+            } else {
+                validatedBoundary = Boundary()
+            }
+
+            try self.init(
+                subtype: subtype,
+                parts: parts,
+                boundary: validatedBoundary,
+                preamble: preamble,
+                epilogue: epilogue,
+                additionalParameters: additionalParameters
+            )
         }
 
         /// The Content-Type for this multipart message
         ///
         /// Includes boundary parameter and any additional parameters.
         public var contentType: RFC_2045.ContentType {
-            var parameters: [String: String] = ["boundary": boundary]
+            var parameters: [String: String] = ["boundary": boundary.value]
 
             // Merge additional parameters from RFC extensions
             parameters.merge(additionalParameters) { _, new in new }
@@ -131,14 +162,14 @@ extension RFC_2046 {
 
             // Body parts
             for part in parts {
-                lines.append("--\(boundary)")
+                lines.append("--\(boundary.value)")
                 lines.append(part.renderHeaders())
                 lines.append("")
                 lines.append(part.renderContent())
             }
 
             // Final boundary
-            lines.append("--\(boundary)--")
+            lines.append("--\(boundary.value)--")
 
             // Epilogue (optional)
             if let epilogue = epilogue {
@@ -150,19 +181,6 @@ extension RFC_2046 {
             return lines.joined(separator: "\r\n") + "\r\n"
         }
 
-        /// Generates a unique boundary string
-        ///
-        /// Returns a boundary string that conforms to RFC 2046 requirements:
-        /// - Maximum 70 characters
-        /// - Uses only characters from the bcharsnospace set
-        /// - Guaranteed to be unique using UUID
-        ///
-        /// The format is `----=_Part_{UUID}` which is 46 characters total.
-        ///
-        /// - Returns: A unique boundary string
-        public static func generateBoundary() -> String {
-            "----=_Part_\(UUID().uuidString)"
-        }
 
         /// Parses multipart data from a string
         ///
