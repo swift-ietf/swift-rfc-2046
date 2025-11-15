@@ -1,5 +1,6 @@
 import Foundation
 import RFC_2045
+import RFC_2183
 import Testing
 
 @testable import RFC_2046
@@ -57,11 +58,11 @@ struct ReadmeVerificationTests {
         )
 
         let attachmentPart = RFC_2046.BodyPart(
-            headers: [
-                "Content-Type": "application/pdf; name=\"document.pdf\"",
-                "Content-Transfer-Encoding": "base64",
-                "Content-Disposition": "attachment; filename=\"document.pdf\"",
-            ],
+            headers: RFC_2046.BodyPart.Headers(
+                contentDisposition: .attachment(filename: "document.pdf"),
+                contentType: .applicationPDF(name: "document.pdf"),
+                contentTransferEncoding: .base64
+            ),
             text: "<base64-encoded-pdf-content>"
         )
 
@@ -69,7 +70,7 @@ struct ReadmeVerificationTests {
             parts: [contentPart, attachmentPart]
         )
 
-        #expect(multipart.subtype == .mixed)
+        #expect(multipart.subtype == RFC_2046.Multipart.Subtype.mixed)
         #expect(multipart.parts.count == 2)
     }
 

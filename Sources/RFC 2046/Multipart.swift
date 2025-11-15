@@ -220,7 +220,7 @@ extension RFC_2046 {
                     if inPart {
                         // Save previous part
                         let content = partContent.joined(separator: "\r\n")
-                        parts.append(BodyPart(headers: partHeaders, text: content))
+                        parts.append(BodyPart(headers: BodyPart.Headers(parsing: partHeaders), text: content))
                     }
                     if inPreamble {
                         preamble = currentSection.isEmpty ? nil : currentSection.joined(separator: "\r\n")
@@ -234,7 +234,7 @@ extension RFC_2046 {
                     // End of multipart
                     if inPart {
                         let content = partContent.joined(separator: "\r\n")
-                        parts.append(BodyPart(headers: partHeaders, text: content))
+                        parts.append(BodyPart(headers: BodyPart.Headers(parsing: partHeaders), text: content))
                     }
                     inPart = false
                 } else if inPart {
@@ -382,19 +382,24 @@ extension RFC_2046 {
     /// )
     /// ```
     public struct BodyPart: Hashable, Sendable, Codable {
-        /// Headers for this body part
-        public let headers: [String: String]
+        /// Type-safe headers for this body part
+        public let typedHeaders: Headers
 
         /// Content of this body part (binary data)
         public let content: Data
 
-        /// Creates a body part with headers and binary content
+        /// String-based headers (computed from typedHeaders for backward compatibility)
+        public var headers: [String: String] {
+            typedHeaders.toDictionary()
+        }
+
+        /// Creates a body part with typed headers and binary content
         ///
         /// - Parameters:
-        ///   - headers: MIME headers for this part
+        ///   - headers: Type-safe MIME headers for this part
         ///   - content: The body content (binary data)
-        public init(headers: [String: String], content: Data) {
-            self.headers = headers
+        public init(headers: Headers, content: Data) {
+            self.typedHeaders = headers
             self.content = content
         }
 
@@ -403,7 +408,7 @@ extension RFC_2046 {
         /// - Parameters:
         ///   - contentType: Content-Type for this part
         ///   - transferEncoding: Optional transfer encoding
-        ///   - additionalHeaders: Additional headers
+        ///   - additionalHeaders: Additional custom headers
         ///   - content: The body content (binary data)
         public init(
             contentType: RFC_2045.ContentType,
@@ -411,14 +416,11 @@ extension RFC_2046 {
             additionalHeaders: [String: String] = [:],
             content: Data
         ) {
-            var headers = additionalHeaders
-            headers["Content-Type"] = contentType.headerValue
-
-            if let encoding = transferEncoding {
-                headers["Content-Transfer-Encoding"] = encoding.headerValue
-            }
-
-            self.headers = headers
+            self.typedHeaders = Headers(
+                contentType: contentType,
+                contentTransferEncoding: transferEncoding,
+                custom: additionalHeaders
+            )
             self.content = content
         }
 
@@ -445,14 +447,14 @@ extension RFC_2046 {
             )
         }
 
-        /// Creates a body part with headers and text content
+        /// Creates a body part with typed headers and text content
         ///
         /// Convenience initializer for text content that converts to UTF-8 data.
         ///
         /// - Parameters:
-        ///   - headers: MIME headers for this part
+        ///   - headers: Type-safe MIME headers for this part
         ///   - text: The text content (will be converted to UTF-8)
-        public init(headers: [String: String], text: String) {
+        public init(headers: Headers, text: String) {
             self.init(headers: headers, content: Data(text.utf8))
         }
 

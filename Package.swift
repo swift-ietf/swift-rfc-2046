@@ -17,13 +17,15 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/swift-standards/swift-rfc-2045", from: "0.1.0")
+        .package(path: "/Users/coen/Developer/swift-standards/swift-rfc-2045"),
+        .package(path: "/Users/coen/Developer/swift-standards/swift-rfc-2183")
     ],
     targets: [
         .target(
             name: "RFC 2046",
             dependencies: [
-                .product(name: "RFC 2045", package: "swift-rfc-2045")
+                .product(name: "RFC 2045", package: "swift-rfc-2045"),
+                .product(name: "RFC 2183", package: "swift-rfc-2183")
             ]
         ),
         .testTarget(
