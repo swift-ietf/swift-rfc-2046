@@ -1,4 +1,3 @@
-import Foundation
 import RFC_2045
 import RFC_2183
 import Testing
@@ -11,9 +10,22 @@ struct ReadmeVerificationTests {
     @Test("Example from README: Multipart/Alternative (Text + HTML)")
     func exampleMultipartAlternative() throws {
         // From README lines 50-62
-        let multipart = try RFC_2046.Multipart.alternative(
-            textContent: "Hello, World!",
-            htmlContent: "<h1>Hello, World!</h1>"
+        let textPart = RFC_2046.BodyPart(
+            contentType: .textPlainUTF8,
+            transferEncoding: .sevenBit,
+            text: "Hello, World!"
+        )
+
+        let htmlPart = RFC_2046.BodyPart(
+            contentType: .textHTMLUTF8,
+            transferEncoding: .sevenBit,
+            text: "<h1>Hello, World!</h1>"
+        )
+
+        let multipart = try RFC_2046.Multipart(
+            subtype: .alternative,
+            parts: [textPart, htmlPart],
+            boundary: try .init("test-boundary-alternative")
         )
 
         let contentType = multipart.contentType.headerValue
@@ -45,7 +57,7 @@ struct ReadmeVerificationTests {
             boundary: "my-custom-boundary"
         )
 
-        #expect(multipart.boundary == "my-custom-boundary")
+        #expect(multipart.boundary.value == "my-custom-boundary")
         #expect(multipart.parts.count == 2)
     }
 
@@ -66,8 +78,10 @@ struct ReadmeVerificationTests {
             text: "<base64-encoded-pdf-content>"
         )
 
-        let multipart = try RFC_2046.Multipart.mixed(
-            parts: [contentPart, attachmentPart]
+        let multipart = try RFC_2046.Multipart(
+            subtype: .mixed,
+            parts: [contentPart, attachmentPart],
+            boundary: try .init("test-boundary-mixed")
         )
 
         #expect(multipart.subtype == RFC_2046.Multipart.Subtype.mixed)
@@ -77,9 +91,22 @@ struct ReadmeVerificationTests {
     @Test("Example from README: Rendering Messages")
     func exampleRendering() throws {
         // From README - rendering multipart message
-        let multipart = try RFC_2046.Multipart.alternative(
-            textContent: "Hello",
-            htmlContent: "<h1>Hello</h1>"
+        let textPart = RFC_2046.BodyPart(
+            contentType: .textPlainUTF8,
+            transferEncoding: .sevenBit,
+            text: "Hello"
+        )
+
+        let htmlPart = RFC_2046.BodyPart(
+            contentType: .textHTMLUTF8,
+            transferEncoding: .sevenBit,
+            text: "<h1>Hello</h1>"
+        )
+
+        let multipart = try RFC_2046.Multipart(
+            subtype: .alternative,
+            parts: [textPart, htmlPart],
+            boundary: try .init("test-boundary-render")
         )
 
         let contentType = multipart.contentType.headerValue

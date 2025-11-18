@@ -5,10 +5,10 @@ import PackageDescription
 let package = Package(
     name: "swift-rfc-2046",
     platforms: [
-        .macOS(.v14),
-        .iOS(.v17),
-        .tvOS(.v17),
-        .watchOS(.v10)
+        .macOS(.v15),
+        .iOS(.v18),
+        .tvOS(.v18),
+        .watchOS(.v11)
     ],
     products: [
         .library(
@@ -17,15 +17,17 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(path: "/Users/coen/Developer/swift-standards/swift-rfc-2045"),
-        .package(path: "/Users/coen/Developer/swift-standards/swift-rfc-2183")
+        .package(path: "../swift-rfc-2045"),
+        .package(path: "../swift-rfc-2183"),
+        .package(path: "../swift-rfc-4648"),
     ],
     targets: [
         .target(
             name: "RFC 2046",
             dependencies: [
                 .product(name: "RFC 2045", package: "swift-rfc-2045"),
-                .product(name: "RFC 2183", package: "swift-rfc-2183")
+                .product(name: "RFC 2183", package: "swift-rfc-2183"),
+                .product(name: "RFC_4648", package: "swift-rfc-4648"),
             ]
         ),
         .testTarget(
@@ -36,9 +38,9 @@ let package = Package(
 )
 
 for target in package.targets {
-    target.swiftSettings?.append(
-        contentsOf: [
-            .enableUpcomingFeature("MemberImportVisibility")
-        ]
+    var settings = target.swiftSettings ?? []
+    settings.append(
+        .enableUpcomingFeature("MemberImportVisibility")
     )
+    target.swiftSettings = settings
 }

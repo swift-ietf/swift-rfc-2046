@@ -1,5 +1,6 @@
-import Foundation
+import INCITS_4_1986
 import RFC_2045
+import RFC_4648
 
 extension RFC_2046 {
     /// Multipart message structure
@@ -60,7 +61,7 @@ extension RFC_2046 {
         /// - Parameters:
         ///   - subtype: Multipart subtype
         ///   - parts: Body parts (must not be empty)
-        ///   - boundary: Custom boundary (auto-generated if nil)
+        ///   - boundary: Boundary delimiter (caller must provide)
         ///   - preamble: Optional preamble text
         ///   - epilogue: Optional epilogue text
         ///   - additionalParameters: Additional Content-Type parameters (e.g., type, start for RFC 2387)
@@ -69,7 +70,7 @@ extension RFC_2046 {
         public init(
             subtype: Subtype,
             parts: [BodyPart],
-            boundary: Boundary? = nil,
+            boundary: Boundary,
             preamble: String? = nil,
             epilogue: String? = nil,
             additionalParameters: [String: String] = [:]
@@ -80,7 +81,7 @@ extension RFC_2046 {
 
             self.subtype = subtype
             self.parts = parts
-            self.boundary = boundary ?? Boundary()
+            self.boundary = boundary
             self.preamble = preamble
             self.epilogue = epilogue
             self.additionalParameters = additionalParameters
@@ -93,7 +94,7 @@ extension RFC_2046 {
         /// - Parameters:
         ///   - subtype: Multipart subtype
         ///   - parts: Body parts (must not be empty)
-        ///   - boundary: Custom boundary string (auto-generated if nil, validated if provided)
+        ///   - boundary: Boundary string to validate
         ///   - preamble: Optional preamble text
         ///   - epilogue: Optional epilogue text
         ///   - additionalParameters: Additional Content-Type parameters
@@ -102,22 +103,15 @@ extension RFC_2046 {
         public init(
             subtype: Subtype,
             parts: [BodyPart],
-            boundary: String?,
+            boundary: String,
             preamble: String? = nil,
             epilogue: String? = nil,
             additionalParameters: [String: String] = [:]
         ) throws {
-            let validatedBoundary: Boundary
-            if let boundary = boundary {
-                validatedBoundary = try Boundary(boundary)
-            } else {
-                validatedBoundary = Boundary()
-            }
-
             try self.init(
                 subtype: subtype,
                 parts: parts,
-                boundary: validatedBoundary,
+                boundary: try Boundary(boundary),
                 preamble: preamble,
                 epilogue: epilogue,
                 additionalParameters: additionalParameters
@@ -205,8 +199,39 @@ extension RFC_2046 {
             var preamble: String?
             var epilogue: String?
 
-            // Split the content by CRLF (or LF for robustness)
-            let lines = string.components(separatedBy: "\r\n")
+            // Split by CRLF, CR, or LF (RFC 2046 requires CRLF, but be lenient)
+            var lines: [String] = []
+            var lineBytes: [UInt8] = []
+
+            var i = string.utf8.startIndex
+            while i < string.utf8.endIndex {
+                let byte = string.utf8[i]
+
+                if byte == UInt8.cr {
+                    let next = string.utf8.index(after: i)
+                    if next < string.utf8.endIndex && string.utf8[next] == UInt8.lf {
+                        // CRLF
+                        lines.append(String(decoding: lineBytes, as: UTF8.self))
+                        lineBytes = []
+                        i = string.utf8.index(after: next)
+                    } else {
+                        // Just CR
+                        lines.append(String(decoding: lineBytes, as: UTF8.self))
+                        lineBytes = []
+                        i = next
+                    }
+                } else if byte == UInt8.lf {
+                    // Just LF
+                    lines.append(String(decoding: lineBytes, as: UTF8.self))
+                    lineBytes = []
+                    i = string.utf8.index(after: i)
+                } else {
+                    lineBytes.append(byte)
+                    i = string.utf8.index(after: i)
+                }
+            }
+            // Add final line
+            lines.append(String(decoding: lineBytes, as: UTF8.self))
 
             var currentSection: [String] = []
             var inPreamble = true
@@ -248,8 +273,8 @@ extension RFC_2046 {
                     } else if partHeaders.isEmpty || line.contains(":") {
                         // Parse header
                         if let colonIndex = line.firstIndex(of: ":") {
-                            let headerName = String(line[..<colonIndex]).trimmingCharacters(in: .whitespaces)
-                            let headerValue = String(line[line.index(after: colonIndex)...]).trimmingCharacters(in: .whitespaces)
+                            let headerName = String(line[..<colonIndex]).trimming(Set([" ", "\t"]))
+                            let headerValue = String(line[line.index(after: colonIndex)...]).trimming(Set([" ", "\t"]))
                             partHeaders[headerName] = headerValue
                         } else if !partHeaders.isEmpty {
                             // Already have headers, so this is content
@@ -386,7 +411,7 @@ extension RFC_2046 {
         public let typedHeaders: Headers
 
         /// Content of this body part (binary data)
-        public let content: Data
+        public let content: [UInt8]
 
         /// String-based headers (computed from typedHeaders for backward compatibility)
         public var headers: [String: String] {
@@ -398,7 +423,7 @@ extension RFC_2046 {
         /// - Parameters:
         ///   - headers: Type-safe MIME headers for this part
         ///   - content: The body content (binary data)
-        public init(headers: Headers, content: Data) {
+        public init(headers: Headers, content: [UInt8]) {
             self.typedHeaders = headers
             self.content = content
         }
@@ -414,7 +439,7 @@ extension RFC_2046 {
             contentType: RFC_2045.ContentType,
             transferEncoding: RFC_2045.ContentTransferEncoding? = nil,
             additionalHeaders: [String: String] = [:],
-            content: Data
+            content: [UInt8]
         ) {
             self.typedHeaders = Headers(
                 contentType: contentType,
@@ -443,7 +468,7 @@ extension RFC_2046 {
                 contentType: contentType,
                 transferEncoding: transferEncoding,
                 additionalHeaders: additionalHeaders,
-                content: Data(text.utf8)
+                content: Array(text.utf8)
             )
         }
 
@@ -455,7 +480,7 @@ extension RFC_2046 {
         ///   - headers: Type-safe MIME headers for this part
         ///   - text: The text content (will be converted to UTF-8)
         public init(headers: Headers, text: String) {
-            self.init(headers: headers, content: Data(text.utf8))
+            self.init(headers: headers, content: Array(text.utf8))
         }
 
         /// Renders the headers as a string
@@ -476,20 +501,19 @@ extension RFC_2046 {
             if let encoding = transferEncoding {
                 switch encoding {
                 case .base64:
-                    return content.base64EncodedString(options: [
-                        .lineLength76Characters, .endLineWithCarriageReturn,
-                    ])
+                    let encoded = RFC_4648.Base64.encode(content)
+                    return String(decoding: encoded, as: UTF8.self)
                 case .quotedPrintable:
                     // TODO: Implement quoted-printable encoding
                     // For now, fall through to raw
                     fallthrough
                 default:
                     // 7bit, 8bit, binary: treat as UTF-8 text
-                    return String(data: content, encoding: .utf8) ?? ""
+                    return String(decoding: content, as: UTF8.self)
                 }
             } else {
                 // No encoding specified: treat as UTF-8 text
-                return String(data: content, encoding: .utf8) ?? ""
+                return String(decoding: content, as: UTF8.self)
             }
         }
 
@@ -510,68 +534,7 @@ extension RFC_2046 {
         /// Returns nil if the content is not valid UTF-8.
         /// Useful for text parts and debugging.
         public var textContent: String? {
-            String(data: content, encoding: .utf8)
+            String(decoding: content, as: UTF8.self)
         }
-    }
-}
-
-// MARK: - Common Multipart Constructors
-
-extension RFC_2046.Multipart {
-    /// Creates a multipart/alternative message (text + HTML)
-    ///
-    /// Commonly used for emails that provide both plain text and HTML versions.
-    /// Email clients display the last format they understand (typically HTML).
-    ///
-    /// **RFC 2046 Section 5.1.4**
-    ///
-    /// - Parameters:
-    ///   - textContent: Plain text version
-    ///   - htmlContent: HTML version
-    ///   - boundary: Custom boundary (auto-generated if nil)
-    /// - Throws: `RFC_2046.MultipartError` if validation fails
-    public static func alternative(
-        textContent: String,
-        htmlContent: String,
-        boundary: String? = nil
-    ) throws -> Self {
-        try Self(
-            subtype: .alternative,
-            parts: [
-                .init(
-                    contentType: .textPlainUTF8,
-                    transferEncoding: .sevenBit,
-                    text: textContent
-                ),
-                .init(
-                    contentType: .textHTMLUTF8,
-                    transferEncoding: .sevenBit,
-                    text: htmlContent
-                ),
-            ],
-            boundary: boundary
-        )
-    }
-
-    /// Creates a multipart/mixed message
-    ///
-    /// Used for independent parts that should be presented in sequence.
-    /// Common use case: email body with file attachments.
-    ///
-    /// **RFC 2046 Section 5.1.3**
-    ///
-    /// - Parameters:
-    ///   - parts: Body parts in order
-    ///   - boundary: Custom boundary (auto-generated if nil)
-    /// - Throws: `RFC_2046.MultipartError` if validation fails
-    public static func mixed(
-        parts: [RFC_2046.BodyPart],
-        boundary: String? = nil
-    ) throws -> Self {
-        try Self(
-            subtype: .mixed,
-            parts: parts,
-            boundary: boundary
-        )
     }
 }

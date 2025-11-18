@@ -1,5 +1,3 @@
-import Foundation
-
 extension RFC_2046 {
     /// A validated multipart boundary string.
     ///
@@ -15,11 +13,8 @@ extension RFC_2046 {
     /// ## Example
     ///
     /// ```swift
-    /// // Generate a random boundary
-    /// let boundary = RFC_2046.Boundary()
-    ///
     /// // Create from string with validation
-    /// let custom = try RFC_2046.Boundary("----=_Part_Custom")
+    /// let boundary = try RFC_2046.Boundary("----=_Part_Custom")
     ///
     /// // Use in multipart
     /// let multipart = try RFC_2046.Multipart(
@@ -28,6 +23,11 @@ extension RFC_2046 {
     ///     boundary: boundary
     /// )
     /// ```
+    ///
+    /// ## Boundary Generation
+    ///
+    /// This type only validates boundaries. For generation, see higher-level
+    /// packages like swift-email-standard which can use RFC 4648 for hex encoding.
     ///
     /// ## Reference
     ///
@@ -40,26 +40,6 @@ extension RFC_2046 {
     public struct Boundary: Hashable, Sendable {
         /// The validated boundary string
         public let value: String
-
-        /// Creates a random cryptographically secure boundary
-        ///
-        /// Generates a boundary using UUID for uniqueness. The format is
-        /// `----=_Part_{UUID}` which is always 46 characters.
-        ///
-        /// This boundary is guaranteed to:
-        /// - Be unique (uses UUID)
-        /// - Conform to RFC 2046 requirements
-        /// - Be robust for mail gateway transport
-        ///
-        /// ## Example
-        ///
-        /// ```swift
-        /// let boundary = RFC_2046.Boundary()
-        /// // Result: ----=_Part_550E8400-E29B-41D4-A716-446655440000
-        /// ```
-        public init() {
-            self.value = "----=_Part_\(UUID().uuidString)"
-        }
 
         /// Creates a boundary from a string with validation
         ///
@@ -125,22 +105,3 @@ extension RFC_2046.Boundary: Codable {
     }
 }
 
-// MARK: - ExpressibleByStringLiteral
-
-extension RFC_2046.Boundary: ExpressibleByStringLiteral {
-    /// Creates a boundary from a string literal
-    ///
-    /// Traps if the literal is invalid. Only use this for compile-time
-    /// constants that you know are valid.
-    ///
-    /// ## Example
-    ///
-    /// ```swift
-    /// let boundary: RFC_2046.Boundary = "----=_Part_Custom"
-    /// ```
-    ///
-    /// - Parameter value: The boundary string literal
-    public init(stringLiteral value: String) {
-        try! self.init(value)
-    }
-}

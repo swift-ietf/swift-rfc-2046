@@ -1,4 +1,3 @@
-import Foundation
 @_exported import RFC_2045
 
 /// RFC 2046: Multipurpose Internet Mail Extensions (MIME) Part Two: Media Types
@@ -57,25 +56,5 @@ public enum RFC_2046 {
         case missingBoundary
         case emptyParts
         case invalidSubtype(String)
-    }
-}
-
-// MARK: - LocalizedError Conformance
-
-extension RFC_2046.MultipartError: LocalizedError {
-    public var errorDescription: String? {
-        switch self {
-        case .invalidBoundary(let boundary):
-            return "Invalid multipart boundary: '\(boundary)'"
-        case .boundaryTooLong(let boundary, let length):
-            return
-                "Boundary too long (\(length) characters): '\(boundary)'. RFC 2046 requires 1-70 characters."
-        case .missingBoundary:
-            return "Multipart content type must include a boundary parameter"
-        case .emptyParts:
-            return "Multipart message must contain at least one body part (RFC 2046)"
-        case .invalidSubtype(let subtype):
-            return "Invalid multipart subtype: '\(subtype)'"
-        }
     }
 }
