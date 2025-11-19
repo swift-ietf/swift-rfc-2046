@@ -4,11 +4,11 @@ import Testing
 
 @testable import RFC_2046
 
-@Suite("README Verification")
-struct ReadmeVerificationTests {
+@Suite
+struct `README Verification` {
 
-    @Test("Example from README: Multipart/Alternative (Text + HTML)")
-    func exampleMultipartAlternative() throws {
+    @Test
+    func `Example from README: Multipart/Alternative (Text + HTML)`() throws {
         // From README lines 50-62
         let textPart = RFC_2046.BodyPart(
             contentType: .textPlainUTF8,
@@ -36,8 +36,8 @@ struct ReadmeVerificationTests {
         #expect(body.contains("<h1>Hello, World!</h1>"))
     }
 
-    @Test("Example from README: Custom Multipart Messages")
-    func exampleCustomMultipart() throws {
+    @Test
+    func `Example from README: Custom Multipart Messages`() throws {
         // From README lines 66-86
         let textPart = RFC_2046.BodyPart(
             contentType: .textPlainUTF8,
@@ -61,8 +61,8 @@ struct ReadmeVerificationTests {
         #expect(multipart.parts.count == 2)
     }
 
-    @Test("Example from README: Multipart/Mixed (With Attachments)")
-    func exampleMultipartMixed() throws {
+    @Test
+    func `Example from README: Multipart/Mixed (With Attachments)`() throws {
         // From README lines 88-111
         let contentPart = RFC_2046.BodyPart(
             contentType: .textHTMLUTF8,
@@ -88,8 +88,8 @@ struct ReadmeVerificationTests {
         #expect(multipart.parts.count == 2)
     }
 
-    @Test("Example from README: Rendering Messages")
-    func exampleRendering() throws {
+    @Test
+    func `Example from README: Rendering Messages`() throws {
         // From README - rendering multipart message
         let textPart = RFC_2046.BodyPart(
             contentType: .textPlainUTF8,
