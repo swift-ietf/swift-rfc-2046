@@ -2,6 +2,7 @@ import Testing
 import Foundation
 import RFC_2045
 import RFC_2183
+import RFC_5322
 @testable import RFC_2046
 
 // MARK: - Headers Initialization
@@ -168,7 +169,7 @@ struct `BodyPart.Headers - Converting to dictionary` {
     @Test
     func `Empty headers produce empty dictionary`() {
         let headers = RFC_2046.BodyPart.Headers()
-        let dict = [String: String](headers)
+        let dict = [RFC_5322.Header.Name: String](headers)
         #expect(dict.isEmpty)
     }
 
@@ -177,7 +178,7 @@ struct `BodyPart.Headers - Converting to dictionary` {
         let headers = RFC_2046.BodyPart.Headers(
             contentType: .textPlainUTF8
         )
-        let dict = [String: String](headers)
+        let dict = [RFC_5322.Header.Name: String](headers)
 
         #expect(dict["Content-Type"] != nil)
         #expect(dict["Content-Type"]?.contains("text/plain") == true)
@@ -188,7 +189,7 @@ struct `BodyPart.Headers - Converting to dictionary` {
         let headers = RFC_2046.BodyPart.Headers(
             contentDisposition: .inline()
         )
-        let dict = [String: String](headers)
+        let dict = [RFC_5322.Header.Name: String](headers)
 
         #expect(dict["Content-Disposition"] != nil)
     }
@@ -198,7 +199,7 @@ struct `BodyPart.Headers - Converting to dictionary` {
         let headers = RFC_2046.BodyPart.Headers(
             contentTransferEncoding: .base64
         )
-        let dict = [String: String](headers)
+        let dict = [RFC_5322.Header.Name: String](headers)
 
         #expect(dict["Content-Transfer-Encoding"] == "base64")
     }
@@ -211,7 +212,7 @@ struct `BodyPart.Headers - Converting to dictionary` {
             contentTransferEncoding: .sevenBit,
             custom: ["X-Custom": "value"]
         )
-        let dict = [String: String](headers)
+        let dict = [RFC_5322.Header.Name: String](headers)
 
         #expect(dict["Content-Type"] != nil)
         #expect(dict["Content-Disposition"] != nil)
@@ -228,7 +229,7 @@ struct `BodyPart.Headers - Converting to dictionary` {
                 "X-Header-2": "value2"
             ]
         )
-        let dict = [String: String](headers)
+        let dict = [RFC_5322.Header.Name: String](headers)
 
         #expect(dict["X-Header-1"] == "value1")
         #expect(dict["X-Header-2"] == "value2")
@@ -247,7 +248,7 @@ struct `BodyPart.Headers - Round-trip conversion` {
             contentType: .textPlainUTF8
         )
 
-        let dict = [String: String](original)
+        let dict = [RFC_5322.Header.Name: String](original)
         let parsed = RFC_2046.BodyPart.Headers(parsing: dict)
 
         #expect(parsed.contentType?.type == "text")
@@ -260,7 +261,7 @@ struct `BodyPart.Headers - Round-trip conversion` {
             contentTransferEncoding: .base64
         )
 
-        let dict = [String: String](original)
+        let dict = [RFC_5322.Header.Name: String](original)
         let parsed = RFC_2046.BodyPart.Headers(parsing: dict)
 
         #expect(parsed.contentTransferEncoding == .base64)
@@ -274,7 +275,7 @@ struct `BodyPart.Headers - Round-trip conversion` {
             ]
         )
 
-        let dict = [String: String](original)
+        let dict = [RFC_5322.Header.Name: String](original)
         let parsed = RFC_2046.BodyPart.Headers(parsing: dict)
 
         #expect(parsed.custom["X-Custom"] == "value")
@@ -289,7 +290,7 @@ struct `BodyPart.Headers - Round-trip conversion` {
             custom: ["X-Custom": "value"]
         )
 
-        let dict = [String: String](original)
+        let dict = [RFC_5322.Header.Name: String](original)
         let parsed = RFC_2046.BodyPart.Headers(parsing: dict)
 
         #expect(parsed.contentDisposition != nil)

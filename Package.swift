@@ -20,6 +20,7 @@ let package = Package(
         .package(url: "https://github.com/swift-standards/swift-rfc-2045", from: "0.1.0"),
         .package(url: "https://github.com/swift-standards/swift-rfc-2183", from: "0.1.0"),
         .package(url: "https://github.com/swift-standards/swift-rfc-4648", from: "0.1.0"),
+        .package(url: "https://github.com/swift-standards/swift-rfc-5322", from: "0.1.0"),
     ],
     targets: [
         .target(
@@ -28,6 +29,7 @@ let package = Package(
                 .product(name: "RFC 2045", package: "swift-rfc-2045"),
                 .product(name: "RFC 2183", package: "swift-rfc-2183"),
                 .product(name: "RFC 4648", package: "swift-rfc-4648"),
+                .product(name: "RFC 5322", package: "swift-rfc-5322"),
             ]
         ),
         .testTarget(

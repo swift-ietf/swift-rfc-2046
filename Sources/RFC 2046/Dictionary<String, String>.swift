@@ -11,23 +11,29 @@
 ///
 /// - Returns: String-based header dictionary ready for encoding
 import RFC_2183
+import RFC_5322
 
-extension [String: String] {
+extension [RFC_5322.Header.Name: String] {
     public init(
         _ bodypartHeaders: RFC_2046.BodyPart.Headers
     ) {
-        var dict: [String: String] = [:]
+        var dict: [RFC_5322.Header.Name: String] = [:]
 
         if let contentDisposition = bodypartHeaders.contentDisposition {
-            dict["Content-Disposition"] = contentDisposition.headerValue
+            dict[.contentDisposition] = String(rfc2183: contentDisposition)
         }
 
         if let contentType = bodypartHeaders.contentType {
-            dict["Content-Type"] = contentType.headerValue
+            dict[.contentType] = contentType.headerValue
         }
 
         if let contentTransferEncoding = bodypartHeaders.contentTransferEncoding {
-            dict["Content-Transfer-Encoding"] = contentTransferEncoding.headerValue
+            dict[.contentTransferEncoding] = contentTransferEncoding.headerValue
+        }
+
+        // Include custom headers (dictionary flattens duplicates - keeps last)
+        for header in bodypartHeaders.custom {
+            dict[header.name] = header.value
         }
 
         self = dict
