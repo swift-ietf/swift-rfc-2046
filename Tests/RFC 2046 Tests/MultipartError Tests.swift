@@ -1,15 +1,15 @@
 import Testing
 @testable import RFC_2046
 
-// MARK: - MultipartError Types
+// MARK: - Multipart.Error Types
 
 @Suite
-struct `MultipartError - Error cases` {
+struct `Multipart.Error - Error cases` {
 
     @Test
     func `invalidBoundary error is created`() {
         let value: String = "test "
-        let error = RFC_2046.MultipartError.invalidBoundary(value)
+        let error = RFC_2046.Multipart.Error.invalidBoundary(value)
 
         switch error {
         case .invalidBoundary(let value):
@@ -22,7 +22,7 @@ struct `MultipartError - Error cases` {
     @Test
     func `boundaryTooLong error is created`() {
         let longBoundary = String(repeating: "x", count: 100)
-        let error = RFC_2046.MultipartError.boundaryTooLong(longBoundary, length: 100)
+        let error = RFC_2046.Multipart.Error.boundaryTooLong(longBoundary, length: 100)
 
         switch error {
         case .boundaryTooLong(let value, let length):
@@ -35,7 +35,7 @@ struct `MultipartError - Error cases` {
 
     @Test
     func `missingBoundary error is created`() {
-        let error = RFC_2046.MultipartError.missingBoundary
+        let error = RFC_2046.Multipart.Error.missingBoundary
 
         switch error {
         case .missingBoundary:
@@ -47,7 +47,7 @@ struct `MultipartError - Error cases` {
 
     @Test
     func `emptyParts error is created`() {
-        let error = RFC_2046.MultipartError.emptyParts
+        let error = RFC_2046.Multipart.Error.emptyParts
 
         switch error {
         case .emptyParts:
@@ -60,7 +60,7 @@ struct `MultipartError - Error cases` {
     @Test
     func `invalidSubtype error is created`() {
         let value: String = "invalid"
-        let error = RFC_2046.MultipartError.invalidSubtype(value)
+        let error = RFC_2046.Multipart.Error.invalidSubtype(value)
 
         switch error {
         case .invalidSubtype(let value):
@@ -71,96 +71,96 @@ struct `MultipartError - Error cases` {
     }
 }
 
-// MARK: - MultipartError Protocol Conformance
+// MARK: - Multipart.Error Protocol Conformance
 
 @Suite
-struct `MultipartError - Equatable` {
+struct `Multipart.Error - Equatable` {
 
     @Test
     func `Same invalidBoundary errors are equal`() {
         let value: String = "test"
-        let a = RFC_2046.MultipartError.invalidBoundary(value)
-        let b = RFC_2046.MultipartError.invalidBoundary(value)
+        let a = RFC_2046.Multipart.Error.invalidBoundary(value)
+        let b = RFC_2046.Multipart.Error.invalidBoundary(value)
         #expect(a == b)
     }
 
     @Test
     func `Different invalidBoundary errors are not equal`() {
-        let a = RFC_2046.MultipartError.invalidBoundary("test1" as String)
-        let b = RFC_2046.MultipartError.invalidBoundary("test2" as String)
+        let a = RFC_2046.Multipart.Error.invalidBoundary("test1" as String)
+        let b = RFC_2046.Multipart.Error.invalidBoundary("test2" as String)
         #expect(a != b)
     }
 
     @Test
     func `Same boundaryTooLong errors are equal`() {
         let value: String = "test"
-        let a = RFC_2046.MultipartError.boundaryTooLong(value, length: 100)
-        let b = RFC_2046.MultipartError.boundaryTooLong(value, length: 100)
+        let a = RFC_2046.Multipart.Error.boundaryTooLong(value, length: 100)
+        let b = RFC_2046.Multipart.Error.boundaryTooLong(value, length: 100)
         #expect(a == b)
     }
 
     @Test
     func `Different boundaryTooLong errors are not equal`() {
         let value: String = "test"
-        let a = RFC_2046.MultipartError.boundaryTooLong(value, length: 100)
-        let b = RFC_2046.MultipartError.boundaryTooLong(value, length: 200)
+        let a = RFC_2046.Multipart.Error.boundaryTooLong(value, length: 100)
+        let b = RFC_2046.Multipart.Error.boundaryTooLong(value, length: 200)
         #expect(a != b)
     }
 
     @Test
     func `missingBoundary errors are equal`() {
-        let a = RFC_2046.MultipartError.missingBoundary
-        let b = RFC_2046.MultipartError.missingBoundary
+        let a = RFC_2046.Multipart.Error.missingBoundary
+        let b = RFC_2046.Multipart.Error.missingBoundary
         #expect(a == b)
     }
 
     @Test
     func `emptyParts errors are equal`() {
-        let a = RFC_2046.MultipartError.emptyParts
-        let b = RFC_2046.MultipartError.emptyParts
+        let a = RFC_2046.Multipart.Error.emptyParts
+        let b = RFC_2046.Multipart.Error.emptyParts
         #expect(a == b)
     }
 
     @Test
     func `Different error types are not equal`() {
-        let a = RFC_2046.MultipartError.emptyParts
-        let b = RFC_2046.MultipartError.missingBoundary
+        let a = RFC_2046.Multipart.Error.emptyParts
+        let b = RFC_2046.Multipart.Error.missingBoundary
         #expect(a != b)
     }
 
     @Test
     func `invalidSubtype errors are equal`() {
         let value: String = "test"
-        let a = RFC_2046.MultipartError.invalidSubtype(value)
-        let b = RFC_2046.MultipartError.invalidSubtype(value)
+        let a = RFC_2046.Multipart.Error.invalidSubtype(value)
+        let b = RFC_2046.Multipart.Error.invalidSubtype(value)
         #expect(a == b)
     }
 }
 
 @Suite
-struct `MultipartError - Hashable` {
+struct `Multipart.Error - Hashable` {
 
     @Test
     func `Same errors have same hash`() {
         let value: String = "test"
-        let a = RFC_2046.MultipartError.invalidBoundary(value)
-        let b = RFC_2046.MultipartError.invalidBoundary(value)
+        let a = RFC_2046.Multipart.Error.invalidBoundary(value)
+        let b = RFC_2046.Multipart.Error.invalidBoundary(value)
         #expect(a.hashValue == b.hashValue)
     }
 
     @Test
     func `Errors work in Set`() {
         let errors: Set = [
-            RFC_2046.MultipartError.emptyParts,
-            RFC_2046.MultipartError.missingBoundary,
-            RFC_2046.MultipartError.emptyParts  // Duplicate
+            RFC_2046.Multipart.Error.emptyParts,
+            RFC_2046.Multipart.Error.missingBoundary,
+            RFC_2046.Multipart.Error.emptyParts  // Duplicate
         ]
         #expect(errors.count == 2)
     }
 
     @Test
     func `Errors work as Dictionary keys`() {
-        var dict: [RFC_2046.MultipartError: String] = [:]
+        var dict: [RFC_2046.Multipart.Error: String] = [:]
         dict[.emptyParts] = "Empty parts"
         dict[.missingBoundary] = "Missing boundary"
 
@@ -170,11 +170,11 @@ struct `MultipartError - Hashable` {
 }
 
 @Suite
-struct `MultipartError - Sendable conformance` {
+struct `Multipart.Error - Sendable conformance` {
 
     @Test
     func `Errors can be sent across concurrency domains`() async {
-        let error = RFC_2046.MultipartError.emptyParts
+        let error = RFC_2046.Multipart.Error.emptyParts
 
         let result = await Task {
             error
@@ -186,20 +186,20 @@ struct `MultipartError - Sendable conformance` {
     @Test
     func `Errors with associated values can be sent`() async {
         let value: String = "test"
-        let error = RFC_2046.MultipartError.invalidBoundary(value)
+        let error = RFC_2046.Multipart.Error.invalidBoundary(value)
 
         let result = await Task {
             error
         }.value
 
-        #expect(result == RFC_2046.MultipartError.invalidBoundary(value))
+        #expect(result == RFC_2046.Multipart.Error.invalidBoundary(value))
     }
 }
 
 // MARK: - Error Throwing
 
 @Suite
-struct `MultipartError - Error throwing in practice` {
+struct `Multipart.Error - Error throwing in practice` {
 
     @Test
     func `Boundary initialization throws invalidBoundary`() {
@@ -232,15 +232,15 @@ struct `MultipartError - Error throwing in practice` {
         do {
             _ = try RFC_2046.Boundary("")
             Issue.record("Expected error to be thrown")
-        } catch RFC_2046.MultipartError.invalidBoundary(let value) {
+        } catch RFC_2046.Multipart.Error.invalidBoundary(let value) {
             #expect(value == "")
         } catch {
-            Issue.record("Expected RFC_2046.MultipartError.invalidBoundary")
+            Issue.record("Expected RFC_2046.Multipart.Error.invalidBoundary")
         }
     }
 
     @Test
-    func `Catching any MultipartError`() {
+    func `Catching any Multipart.Error`() {
         do {
             _ = try RFC_2046.Multipart(
                 subtype: .mixed,
@@ -248,10 +248,10 @@ struct `MultipartError - Error throwing in practice` {
                 boundary: "test"
             )
             Issue.record("Expected error to be thrown")
-        } catch let error as RFC_2046.MultipartError {
+        } catch let error as RFC_2046.Multipart.Error {
             #expect(error == .emptyParts)
         } catch {
-            Issue.record("Expected RFC_2046.MultipartError")
+            Issue.record("Expected RFC_2046.Multipart.Error")
         }
     }
 }
@@ -259,12 +259,12 @@ struct `MultipartError - Error throwing in practice` {
 // MARK: - Error Messages and Debugging
 
 @Suite
-struct `MultipartError - Error information` {
+struct `Multipart.Error - Error information` {
 
     @Test
     func `invalidBoundary error contains boundary value`() {
         let value: String = "bad boundary "
-        let error = RFC_2046.MultipartError.invalidBoundary(value)
+        let error = RFC_2046.Multipart.Error.invalidBoundary(value)
         let description = String(describing: error)
 
         // The error should contain information about the invalid boundary
@@ -274,7 +274,7 @@ struct `MultipartError - Error information` {
     @Test
     func `boundaryTooLong error contains length information`() {
         let value: String = "test"
-        let error = RFC_2046.MultipartError.boundaryTooLong(value, length: 100)
+        let error = RFC_2046.Multipart.Error.boundaryTooLong(value, length: 100)
         let description = String(describing: error)
 
         #expect(description.contains("boundaryTooLong"))
@@ -282,7 +282,7 @@ struct `MultipartError - Error information` {
 
     @Test
     func `Error can be pattern matched`() {
-        let error: RFC_2046.MultipartError = .emptyParts
+        let error: RFC_2046.Multipart.Error = .emptyParts
 
         let message: String
         switch error {
@@ -304,7 +304,7 @@ struct `MultipartError - Error information` {
     @Test
     func `All error cases are covered`() {
         let value: String = "test"
-        let errors: [RFC_2046.MultipartError] = [
+        let errors: [RFC_2046.Multipart.Error] = [
             .emptyParts,
             .missingBoundary,
             .invalidBoundary(value),

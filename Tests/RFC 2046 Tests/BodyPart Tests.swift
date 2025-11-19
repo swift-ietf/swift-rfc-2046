@@ -18,7 +18,7 @@ struct `BodyPart - Initialization with typed headers` {
 
         let part = RFC_2046.BodyPart(headers: headers, content: content)
 
-        #expect(part.typedHeaders == headers)
+        #expect(part.headers == headers)
         #expect(part.content == content)
     }
 
@@ -31,7 +31,7 @@ struct `BodyPart - Initialization with typed headers` {
 
         let part = RFC_2046.BodyPart(headers: headers, text: text)
 
-        #expect(part.typedHeaders == headers)
+        #expect(part.headers == headers)
         #expect(part.textContent == text)
     }
 
@@ -253,7 +253,7 @@ struct `BodyPart - Rendering headers` {
             text: "Hello"
         )
 
-        let rendered = part.renderHeaders()
+        let rendered = String(part.headers)
 
         // Headers should be sorted alphabetically
         #expect(rendered.contains("Content-Transfer-Encoding: 7bit"))
@@ -268,7 +268,7 @@ struct `BodyPart - Rendering headers` {
             text: "Hello"
         )
 
-        let rendered = part.renderHeaders()
+        let rendered = String(part.headers)
 
         #expect(rendered.contains("X-Custom: value"))
     }
@@ -281,7 +281,7 @@ struct `BodyPart - Rendering headers` {
             text: "Hello"
         )
 
-        let rendered = part.renderHeaders()
+        let rendered = String(part.headers)
 
         #expect(rendered.contains("\r\n"))
     }
@@ -291,7 +291,7 @@ struct `BodyPart - Rendering headers` {
         let headers = RFC_2046.BodyPart.Headers()
         let part = RFC_2046.BodyPart(headers: headers, text: "Hello")
 
-        let rendered = part.renderHeaders()
+        let rendered = String(part.headers)
 
         #expect(rendered.isEmpty)
     }

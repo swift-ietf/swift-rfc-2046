@@ -73,30 +73,53 @@ extension RFC_2046.BodyPart {
             self.custom = remaining
         }
 
-        /// Converts to string dictionary for wire format encoding
+        /// Subscript access to header values by name
         ///
-        /// This is the boundary where type-safety converts to strings for transmission.
+        /// Provides string-based access to headers for convenience. Typed properties should be preferred.
         ///
-        /// - Returns: String-based header dictionary ready for encoding
-        public func toDictionary() -> [String: String] {
-            var dict = custom
-
-            if let contentDisposition = contentDisposition {
-                dict["Content-Disposition"] = contentDisposition.headerValue
+        /// - Parameter headerName: Case-sensitive header name (e.g., "Content-Type")
+        /// - Returns: Header value as string, or nil if not present
+        public subscript(headerName: String) -> String? {
+            get {
+                switch headerName {
+                case "Content-Disposition":
+                    return contentDisposition?.headerValue
+                case "Content-Type":
+                    return contentType?.headerValue
+                case "Content-Transfer-Encoding":
+                    return contentTransferEncoding?.headerValue
+                default:
+                    return custom[headerName]
+                }
             }
-
-            if let contentType = contentType {
-                dict["Content-Type"] = contentType.headerValue
+            set {
+                switch headerName {
+                case "Content-Disposition":
+                    if let value = newValue {
+                        contentDisposition = try? RFC_2183.ContentDisposition(parsing: value)
+                    } else {
+                        contentDisposition = nil
+                    }
+                case "Content-Type":
+                    if let value = newValue {
+                        contentType = try? RFC_2045.ContentType(parsing: value)
+                    } else {
+                        contentType = nil
+                    }
+                case "Content-Transfer-Encoding":
+                    if let value = newValue {
+                        contentTransferEncoding = try? RFC_2045.ContentTransferEncoding(parsing: value)
+                    } else {
+                        contentTransferEncoding = nil
+                    }
+                default:
+                    custom[headerName] = newValue
+                }
             }
-
-            if let contentTransferEncoding = contentTransferEncoding {
-                dict["Content-Transfer-Encoding"] = contentTransferEncoding.headerValue
-            }
-
-            return dict
         }
     }
 }
+
 
 // MARK: - Convenience Constructors
 

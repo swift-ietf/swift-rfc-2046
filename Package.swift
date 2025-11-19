@@ -27,7 +27,7 @@ let package = Package(
             dependencies: [
                 .product(name: "RFC 2045", package: "swift-rfc-2045"),
                 .product(name: "RFC 2183", package: "swift-rfc-2183"),
-                .product(name: "RFC_4648", package: "swift-rfc-4648"),
+                .product(name: "RFC 4648", package: "swift-rfc-4648"),
             ]
         ),
         .testTarget(

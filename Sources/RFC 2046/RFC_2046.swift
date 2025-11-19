@@ -49,12 +49,6 @@
 ///
 /// This module re-exports RFC 2045 (MIME Part 1) for convenience.
 public enum RFC_2046 {
-    /// Errors that can occur when working with multipart messages
-    public enum MultipartError: Error, Hashable, Sendable {
-        case invalidBoundary(String)
-        case boundaryTooLong(String, length: Int)
-        case missingBoundary
-        case emptyParts
-        case invalidSubtype(String)
-    }
+    
 }
+

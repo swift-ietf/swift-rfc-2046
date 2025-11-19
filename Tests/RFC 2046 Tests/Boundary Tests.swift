@@ -1,4 +1,5 @@
 import Testing
+import Foundation
 @testable import RFC_2046
 
 // MARK: - Boundary Validation

@@ -1,4 +1,5 @@
 import Testing
+import Foundation
 import RFC_2045
 import RFC_2183
 @testable import RFC_2046
@@ -106,7 +107,7 @@ struct `Multipart - Invalid initialization` {
 
     @Test
     func `Empty parts array throws error`() {
-        #expect(throws: RFC_2046.MultipartError.emptyParts) {
+        #expect(throws: RFC_2046.Multipart.Error.emptyParts) {
             try RFC_2046.Multipart(
                 subtype: .mixed,
                 parts: [],

@@ -46,7 +46,7 @@ extension RFC_2046 {
         /// Validates that the boundary conforms to RFC 2046 requirements.
         ///
         /// - Parameter value: The boundary string to validate
-        /// - Throws: `RFC_2046.MultipartError` if validation fails
+        /// - Throws: `RFC_2046.Multipart.Error` if validation fails
         ///
         /// ## Validation Rules
         ///
@@ -61,11 +61,11 @@ extension RFC_2046 {
         /// ```
         public init(_ value: String) throws {
             guard !value.isEmpty else {
-                throw RFC_2046.MultipartError.invalidBoundary(value)
+                throw RFC_2046.Multipart.Error.invalidBoundary(value)
             }
 
             guard (1...70).contains(value.count) else {
-                throw RFC_2046.MultipartError.boundaryTooLong(
+                throw RFC_2046.Multipart.Error.boundaryTooLong(
                     value,
                     length: value.count
                 )
@@ -73,7 +73,7 @@ extension RFC_2046 {
 
             // RFC 2046: boundary must not end with a space
             guard !value.hasSuffix(" ") else {
-                throw RFC_2046.MultipartError.invalidBoundary(value)
+                throw RFC_2046.Multipart.Error.invalidBoundary(value)
             }
 
             self.value = value
