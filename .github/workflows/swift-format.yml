@@ -5,15 +5,11 @@ on:
     branches:
       - main
 
-concurrency:
-  group: format-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   swift_format:
     name: swift-format
     runs-on: ubuntu-latest
-    container: swift:6.0
+    container: swift:6.2
     permissions:
       contents: write
     steps:
@@ -29,7 +25,7 @@ jobs:
       - name: Install swift-format
         if: steps.cache-swift-format.outputs.cache-hit != 'true'
         run: |
-          git clone --depth 1 --branch main https://github.com/apple/swift-format.git
+          git clone --depth 1 --branch $(git ls-remote --tags https://github.com/apple/swift-format.git | grep -o 'refs/tags/[0-9]*\.[0-9]*\.[0-9]*$' | sort -V | tail -1 | sed 's/refs\/tags\///') https://github.com/apple/swift-format.git
           cd swift-format
           swift build -c release
           cp .build/release/swift-format /usr/local/bin/
@@ -37,7 +33,7 @@ jobs:
           rm -rf swift-format
 
       - name: Format
-        run: swift-format format --ignore-unparsable-files --recursive --in-place Sources Tests
+        run: swift-format format --recursive --in-place --ignore-unparsable-files Sources Tests
 
       - uses: stefanzweifel/git-auto-commit-action@v7
         with:
