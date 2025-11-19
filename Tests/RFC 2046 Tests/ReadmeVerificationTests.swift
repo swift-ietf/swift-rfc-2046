@@ -69,9 +69,9 @@ struct `README Verification` {
             text: "<h1>Email with attachment</h1>"
         )
 
-        let attachmentPart = RFC_2046.BodyPart(
+        let attachmentPart = try RFC_2046.BodyPart(
             headers: RFC_2046.BodyPart.Headers(
-                contentDisposition: .attachment(filename: "document.pdf"),
+                contentDisposition: .attachment(filename: .init("document.pdf")),
                 contentType: .applicationPDF(name: "document.pdf"),
                 contentTransferEncoding: .base64
             ),

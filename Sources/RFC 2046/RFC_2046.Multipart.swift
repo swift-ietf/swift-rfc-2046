@@ -1,7 +1,7 @@
 import INCITS_4_1986
-import RFC_2045
-import RFC_4648
-import RFC_5322
+public import RFC_2045
+public import RFC_4648
+public import RFC_5322
 
 extension RFC_2046 {
     /// Multipart message structure

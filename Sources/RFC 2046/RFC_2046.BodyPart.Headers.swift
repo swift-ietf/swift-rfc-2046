@@ -1,6 +1,6 @@
-import RFC_2045
-import RFC_2183
-import RFC_5322
+public import RFC_2045
+public import RFC_2183
+public import RFC_5322
 
 extension RFC_2046.BodyPart {
     /// Type-safe headers for multipart body parts
@@ -162,35 +162,35 @@ extension RFC_2046.BodyPart.Headers {
     ///
     /// - Parameter headerName: Case-sensitive header name (e.g., "Content-Type")
     /// - Returns: Header value as string, or nil if not present
-    public subscript(headerName: String) -> String? {
+    public subscript(headerName: RFC_5322.Header.Name) -> String? {
         get {
             switch headerName {
-            case "Content-Disposition":
-                return contentDisposition.map(String.init)
-            case "Content-Type":
+            case .contentDisposition:
+                return contentDisposition.map(\.description)
+            case .contentType:
                 return contentType?.headerValue
-            case "Content-Transfer-Encoding":
+            case .contentTransferEncoding:
                 return contentTransferEncoding?.headerValue
             default:
                 // Delegate to RFC_5322.Header array subscript
-                return custom[RFC_5322.Header.Name(headerName)]
+                return custom[headerName]
             }
         }
         set {
             switch headerName {
-            case "Content-Disposition":
+            case .contentDisposition:
                 if let value = newValue {
                     contentDisposition = try? RFC_2183.ContentDisposition(parsing: value)
                 } else {
                     contentDisposition = nil
                 }
-            case "Content-Type":
+            case .contentType:
                 if let value = newValue {
                     contentType = try? RFC_2045.ContentType(parsing: value)
                 } else {
                     contentType = nil
                 }
-            case "Content-Transfer-Encoding":
+            case .contentTransferEncoding:
                 if let value = newValue {
                     contentTransferEncoding = try? RFC_2045.ContentTransferEncoding(parsing: value)
                 } else {
@@ -198,7 +198,7 @@ extension RFC_2046.BodyPart.Headers {
                 }
             default:
                 // Delegate to RFC_5322.Header array subscript
-                custom[RFC_5322.Header.Name(headerName)] = newValue
+                custom[headerName] = newValue
             }
         }
     }
@@ -240,7 +240,7 @@ extension RFC_2046.BodyPart.Headers {
     /// ```
     public static func formDataFile(
         name: String,
-        filename: String,
+        filename: RFC_2183.Filename,
         contentType: RFC_2045.ContentType? = nil
     ) -> Self {
         Self(

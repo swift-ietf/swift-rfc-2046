@@ -5,9 +5,9 @@
 //  Created by Coen ten Thije Boonkkamp on 19/11/2025.
 //
 
-import RFC_2045
-import RFC_2183
-import RFC_5322
+public import RFC_2045
+public import RFC_2183
+public import RFC_5322
 
 extension String {
     /// Renders headers as RFC 5322 header fields

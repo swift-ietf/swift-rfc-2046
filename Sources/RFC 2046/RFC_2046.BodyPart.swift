@@ -1,5 +1,5 @@
-import RFC_4648
-import RFC_5322
+public import RFC_4648
+public import RFC_5322
 
 extension RFC_2046 {
     /// A single part within a multipart message

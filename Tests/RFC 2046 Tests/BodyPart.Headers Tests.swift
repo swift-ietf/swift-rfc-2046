@@ -326,10 +326,10 @@ struct `BodyPart.Headers - Form data text field` {
 struct `BodyPart.Headers - Form data file` {
 
     @Test
-    func `Form data file creates correct headers`() {
-        let headers = RFC_2046.BodyPart.Headers.formDataFile(
+    func `Form data file creates correct headers`() throws {
+        let headers = try RFC_2046.BodyPart.Headers.formDataFile(
             name: "avatar",
-            filename: "photo.jpg"
+            filename: .init("photo.jpg")
         )
 
         #expect(headers.contentDisposition != nil)
@@ -337,11 +337,11 @@ struct `BodyPart.Headers - Form data file` {
     }
 
     @Test
-    func `Form data file with content type`() {
+    func `Form data file with content type`() throws {
         let contentType = RFC_2045.ContentType(type: "image", subtype: "jpeg")
-        let headers = RFC_2046.BodyPart.Headers.formDataFile(
+        let headers = try RFC_2046.BodyPart.Headers.formDataFile(
             name: "avatar",
-            filename: "photo.jpg",
+            filename: .init("photo.jpg"),
             contentType: contentType
         )
 
@@ -352,20 +352,20 @@ struct `BodyPart.Headers - Form data file` {
     }
 
     @Test
-    func `Form data file with filename containing spaces`() {
-        let headers = RFC_2046.BodyPart.Headers.formDataFile(
+    func `Form data file with filename containing spaces`() throws {
+        let headers = try RFC_2046.BodyPart.Headers.formDataFile(
             name: "document",
-            filename: "my document.pdf"
+            filename: .init("my document.pdf")
         )
 
         #expect(headers.contentDisposition != nil)
     }
 
     @Test
-    func `Form data file with special characters in filename`() {
-        let headers = RFC_2046.BodyPart.Headers.formDataFile(
+    func `Form data file with special characters in filename`() throws {
+        let headers = try RFC_2046.BodyPart.Headers.formDataFile(
             name: "file",
-            filename: "document-v1.2.pdf"
+            filename: .init("document-v1.2.pdf")
         )
 
         #expect(headers.contentDisposition != nil)

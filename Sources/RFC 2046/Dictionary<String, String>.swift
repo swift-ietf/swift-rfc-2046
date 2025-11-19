@@ -10,8 +10,8 @@
 /// This is the boundary where type-safety converts to strings for transmission.
 ///
 /// - Returns: String-based header dictionary ready for encoding
-import RFC_2183
-import RFC_5322
+public import RFC_2183
+public import RFC_5322
 
 extension [RFC_5322.Header.Name: String] {
     public init(

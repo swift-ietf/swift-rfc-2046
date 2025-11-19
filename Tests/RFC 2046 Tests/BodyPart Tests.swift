@@ -1,6 +1,7 @@
 import Testing
 import RFC_2045
 import RFC_2183
+import RFC_5322
 @testable import RFC_2046
 import Foundation
 
