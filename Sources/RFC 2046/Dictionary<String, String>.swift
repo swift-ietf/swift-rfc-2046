@@ -20,7 +20,7 @@ extension [RFC_5322.Header.Name: String] {
         var dict: [RFC_5322.Header.Name: String] = [:]
 
         if let contentDisposition = bodypartHeaders.contentDisposition {
-            dict[.contentDisposition] = String(rfc2183: contentDisposition)
+            dict[.contentDisposition] = String(contentDisposition)
         }
 
         if let contentType = bodypartHeaders.contentType {

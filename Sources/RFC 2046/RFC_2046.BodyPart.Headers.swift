@@ -166,7 +166,7 @@ extension RFC_2046.BodyPart.Headers {
         get {
             switch headerName {
             case "Content-Disposition":
-                return contentDisposition.map(String.init(rfc2183:))
+                return contentDisposition.map(String.init)
             case "Content-Type":
                 return contentType?.headerValue
             case "Content-Transfer-Encoding":
