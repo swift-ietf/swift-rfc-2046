@@ -55,7 +55,10 @@ extension RFC_2046 {
         ///
         /// Allows RFC extensions (2387, 7578, etc.) to add custom parameters
         /// to the multipart Content-Type header.
-        public let additionalParameters: [String: String]
+        ///
+        /// Uses type-safe `RFC_2045.Parameter.Name` for parameter names.
+        /// String literals work via `ExpressibleByStringLiteral` conformance.
+        public let additionalParameters: [RFC_2045.Parameter.Name: String]
 
         /// Creates a multipart message
         ///
@@ -74,7 +77,7 @@ extension RFC_2046 {
             boundary: Boundary,
             preamble: String? = nil,
             epilogue: String? = nil,
-            additionalParameters: [String: String] = [:]
+            additionalParameters: [RFC_2045.Parameter.Name: String] = [:]
         ) throws {
             guard !parts.isEmpty else {
                 throw RFC_2046.Multipart.Error.emptyParts
@@ -112,7 +115,7 @@ extension RFC_2046.Multipart {
         boundary: String,
         preamble: String? = nil,
         epilogue: String? = nil,
-        additionalParameters: [String: String] = [:]
+        additionalParameters: [RFC_2045.Parameter.Name: String] = [:]
     ) throws {
         try self.init(
             subtype: subtype,
@@ -132,7 +135,7 @@ extension RFC_2046.Multipart {
     ///
     /// Includes boundary parameter and any additional parameters.
     public var contentType: RFC_2045.ContentType {
-        var parameters: [String: String] = ["boundary": boundary.value]
+        var parameters: [RFC_2045.Parameter.Name: String] = [.boundary: boundary.value]
 
         // Merge additional parameters from RFC extensions
         parameters.merge(additionalParameters) { _, new in new }

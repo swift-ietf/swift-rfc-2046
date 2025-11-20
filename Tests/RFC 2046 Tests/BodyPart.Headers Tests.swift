@@ -25,7 +25,7 @@ struct `BodyPart.Headers - Initialization` {
             contentDisposition: .inline(),
             contentType: .textPlainUTF8,
             contentTransferEncoding: .sevenBit,
-            custom: ["X-Custom": "value"]
+            custom: [.init(name: "X-Custom", value: "value")]
         )
 
         #expect(headers.contentDisposition == .inline())
@@ -210,7 +210,7 @@ struct `BodyPart.Headers - Converting to dictionary` {
             contentDisposition: .inline(),
             contentType: .textPlainUTF8,
             contentTransferEncoding: .sevenBit,
-            custom: ["X-Custom": "value"]
+            custom: [.init(name: "X-Custom", value: "value")]
         )
         let dict = [RFC_5322.Header.Name: String](headers)
 
@@ -287,7 +287,7 @@ struct `BodyPart.Headers - Round-trip conversion` {
             contentDisposition: .inline(),
             contentType: .textHTMLUTF8,
             contentTransferEncoding: .quotedPrintable,
-            custom: ["X-Custom": "value"]
+            custom: [.init(name: "X-Custom", value: "value")]
         )
 
         let dict = [RFC_5322.Header.Name: String](original)
@@ -393,8 +393,8 @@ struct `BodyPart.Headers - Hashable and Equatable` {
 
     @Test
     func `Headers with different custom values are not equal`() {
-        let a = RFC_2046.BodyPart.Headers(custom: ["X-A": "1"])
-        let b = RFC_2046.BodyPart.Headers(custom: ["X-A": "2"])
+        let a = RFC_2046.BodyPart.Headers(custom: [.init(name: "X-A", value: "1")])
+        let b = RFC_2046.BodyPart.Headers(custom: [.init(name: "X-A", value: "2")])
         #expect(a != b)
     }
 
@@ -415,7 +415,7 @@ struct `BodyPart.Headers - Codable` {
             contentDisposition: .inline(),
             contentType: .textPlainUTF8,
             contentTransferEncoding: .base64,
-            custom: ["X-Custom": "value"]
+            custom: [.init(name: "X-Custom", value: "value")]
         )
 
         let encoder = JSONEncoder()

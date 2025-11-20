@@ -49,23 +49,18 @@ extension RFC_2046.BodyPart {
     /// - Parameters:
     ///   - contentType: Content-Type for this part
     ///   - transferEncoding: Optional transfer encoding
-    ///   - additionalHeaders: Additional custom headers as string dictionary
+    ///   - additionalHeaders: Additional custom headers
     ///   - content: The body content (binary data)
     public init(
         contentType: RFC_2045.ContentType,
         transferEncoding: RFC_2045.ContentTransferEncoding? = nil,
-        additionalHeaders: [String: String] = [:],
+        additionalHeaders: [RFC_5322.Header] = [],
         content: [UInt8]
     ) {
-        // Convert string dictionary to RFC_5322.Header array
-        let customHeaders = additionalHeaders.map { key, value in
-            RFC_5322.Header(name: RFC_5322.Header.Name(key), value: value)
-        }
-
         self.headers = Headers(
             contentType: contentType,
             contentTransferEncoding: transferEncoding,
-            custom: customHeaders
+            custom: additionalHeaders
         )
         self.content = content
     }
@@ -77,12 +72,12 @@ extension RFC_2046.BodyPart {
     /// - Parameters:
     ///   - contentType: Content-Type for this part
     ///   - transferEncoding: Optional transfer encoding
-    ///   - additionalHeaders: Additional headers as string dictionary
+    ///   - additionalHeaders: Additional custom headers
     ///   - text: The text content (will be converted to UTF-8)
     public init(
         contentType: RFC_2045.ContentType,
         transferEncoding: RFC_2045.ContentTransferEncoding? = nil,
-        additionalHeaders: [String: String] = [:],
+        additionalHeaders: [RFC_5322.Header] = [],
         text: String
     ) {
         self.init(

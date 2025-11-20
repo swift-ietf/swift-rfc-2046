@@ -12,7 +12,7 @@ extension RFC_2046.BodyPart {
     /// ## Example
     ///
     /// ```swift
-    /// let headers = RFC_2046.BodyPart.Headers(
+    /// var headers = RFC_2046.BodyPart.Headers(
     ///     contentDisposition: .formData(name: "avatar", filename: "photo.jpg"),
     ///     contentType: RFC_2045.ContentType(type: "image", subtype: "jpeg"),
     ///     custom: [
@@ -20,8 +20,8 @@ extension RFC_2046.BodyPart {
     ///     ]
     /// )
     ///
-    /// // Convenient subscript access
-    /// headers.custom["X-Priority"] = "1"
+    /// // Type-safe subscript access (string literals work via ExpressibleByStringLiteral)
+    /// headers["X-Priority"] = "1"
     /// ```
     public struct Headers: Hashable, Sendable, Codable {
         /// Content-Disposition header (RFC 2183)
@@ -74,29 +74,6 @@ extension RFC_2046.BodyPart {
             self.custom = custom
         }
 
-        /// Creates typed headers with dictionary-based custom headers
-        ///
-        /// Note: Dictionary loses header order and duplicates.
-        /// Prefer the array-based init for preserving order.
-        ///
-        /// - Parameters:
-        ///   - contentDisposition: Optional Content-Disposition header
-        ///   - contentType: Optional Content-Type header
-        ///   - contentTransferEncoding: Optional Content-Transfer-Encoding header
-        ///   - custom: Additional custom headers as dictionary
-        public init(
-            contentDisposition: RFC_2183.ContentDisposition? = nil,
-            contentType: RFC_2045.ContentType? = nil,
-            contentTransferEncoding: RFC_2045.ContentTransferEncoding? = nil,
-            custom: [String: String]
-        ) {
-            self.init(
-                contentDisposition: contentDisposition,
-                contentType: contentType,
-                contentTransferEncoding: contentTransferEncoding,
-                custom: [RFC_5322.Header](dictionary: custom)
-            )
-        }
     }
 }
 
@@ -156,11 +133,12 @@ extension RFC_2046.BodyPart.Headers {
 // MARK: - Subscript
 
 extension RFC_2046.BodyPart.Headers {
-    /// Subscript access to header values by name
+    /// Subscript access to header values by typed name
     ///
-    /// Provides string-based access to headers for convenience. Typed properties should be preferred.
+    /// Provides type-safe access to headers using `RFC_5322.Header.Name`.
+    /// String literals work via `ExpressibleByStringLiteral` conformance.
     ///
-    /// - Parameter headerName: Case-sensitive header name (e.g., "Content-Type")
+    /// - Parameter headerName: Typed header name (e.g., .contentType or "Content-Type")
     /// - Returns: Header value as string, or nil if not present
     public subscript(headerName: RFC_5322.Header.Name) -> String? {
         get {

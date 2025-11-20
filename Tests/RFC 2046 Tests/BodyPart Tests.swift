@@ -102,7 +102,7 @@ struct `BodyPart - Initialization with content type` {
     func `Initialize with additional headers`() {
         let part = RFC_2046.BodyPart(
             contentType: .textPlainUTF8,
-            additionalHeaders: ["X-Custom": "value"],
+            additionalHeaders: [.init(name: "X-Custom", value: "value")],
             text: "Hello"
         )
 
@@ -115,7 +115,7 @@ struct `BodyPart - Initialization with content type` {
         let part = RFC_2046.BodyPart(
             contentType: .textHTMLUTF8,
             transferEncoding: .quotedPrintable,
-            additionalHeaders: ["X-Custom": "value"],
+            additionalHeaders: [.init(name: "X-Custom", value: "value")],
             text: "<h1>Hello</h1>"
         )
 
@@ -221,7 +221,7 @@ struct `BodyPart - Header access` {
         let part = RFC_2046.BodyPart(
             contentType: .textPlainUTF8,
             transferEncoding: .sevenBit,
-            additionalHeaders: ["X-Custom": "value"],
+            additionalHeaders: [.init(name: "X-Custom", value: "value")],
             text: "Hello"
         )
 
@@ -265,7 +265,7 @@ struct `BodyPart - Rendering headers` {
     func `Render headers includes custom headers`() {
         let part = RFC_2046.BodyPart(
             contentType: .textPlainUTF8,
-            additionalHeaders: ["X-Custom": "value"],
+            additionalHeaders: [.init(name: "X-Custom", value: "value")],
             text: "Hello"
         )
 
@@ -463,7 +463,7 @@ struct `BodyPart - Codable` {
         let original = RFC_2046.BodyPart(
             contentType: .textPlainUTF8,
             transferEncoding: .base64,
-            additionalHeaders: ["X-Custom": "value"],
+            additionalHeaders: [.init(name: "X-Custom", value: "value")],
             text: "Hello, World!"
         )
 
