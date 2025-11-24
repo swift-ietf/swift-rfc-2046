@@ -1,71 +1,50 @@
 disabled_rules:
   - line_length
-  - trailing_comma
-  - redundant_discardable_let
-  - no_fallthrough_only
-  - todo
+  - identifier_name
+  - nesting
+  - type_name
+  - explicit_enum_raw_value
+  - file_length
+  - function_body_length
+  - redundant_discardable_let  # Preserve 'let _ =' in result builder contexts (required for Swift 6.0+)
 
 opt_in_rules:
-  - explicit_init
-  - closure_spacing
   - empty_count
-  - empty_string
-  - fatal_error_message
-  - first_where
-  - joined_default_parameter
+  - explicit_init
+  - sorted_imports
+  - force_cast
+  - force_try
+  - closure_spacing
   - operator_usage_whitespace
-  - overridden_super_call
-
+  - private_outlet
+  - redundant_nil_coalescing
+  - empty_string
+  - literal_expression_end_indentation
+  - single_test_class
+  - sorted_first_last
+  - vertical_whitespace
+  - strict_fileprivate
+  - legacy_random
+  - no_extension_access_modifier
+  - colon
+  - trailing_comma
+  
 included:
+  - Package.swift
   - Sources
   - Tests
 
 excluded:
-  - .build
   - Carthage
   - Pods
   - fastlane
+  - build
 
-# Type body length settings
-type_body_length:
-  warning: 500
-  error: 600
+analyzer_rules:
+  - unused_import
 
-# File length settings
-file_length:
-  warning: 800
-  error: 1000
-  ignore_comment_only_lines: true
+colon:
+  apply_to_dictionaries: true
 
-# Function body length settings
-function_body_length:
-  warning: 100
-  error: 120
-
-# Function parameter count
-function_parameter_count:
-  warning: 6
-  error: 8
-
-# Cyclomatic complexity
-cyclomatic_complexity:
-  warning: 15
-  error: 20
-
-# Identifier name settings
-identifier_name:
-  min_length:
-    warning: 2
-  max_length:
-    warning: 50
-    error: 60
-  excluded:
-    - id
-    - URL
-    - to
-    - db
-
-# Type name settings - allow RFC_XXXX pattern
-type_name:
-  allowed_symbols:
-    - "_"
+vertical_whitespace:
+  max_empty_lines: 1
