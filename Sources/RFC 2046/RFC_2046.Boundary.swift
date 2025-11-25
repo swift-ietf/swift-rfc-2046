@@ -55,7 +55,10 @@ public extension RFC_2046 {
         /// Only use with compile-time constants or pre-validated values.
         ///
         /// - Parameter rawValue: Pre-validated boundary string
-        init(__unchecked _: Void, rawValue: String) {
+        init(
+            __unchecked _: Void,
+            rawValue: String
+        ) {
             self.rawValue = rawValue
         }
     }

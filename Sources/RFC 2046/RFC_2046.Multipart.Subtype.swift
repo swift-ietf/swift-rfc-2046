@@ -54,7 +54,10 @@ public extension RFC_2046.Multipart {
         ///
         /// **Warning**: Bypasses normalization.
         /// Only use for static constants with pre-lowercased values.
-        init(__unchecked _: Void, rawValue: String) {
+        init(
+            __unchecked _: Void,
+            rawValue: String
+        ) {
             self.rawValue = rawValue
         }
     }
@@ -123,25 +126,8 @@ public extension [UInt8] {
 // MARK: - Protocol Conformances
 
 extension RFC_2046.Multipart.Subtype: UInt8.ASCII.RawRepresentable {}
+extension RFC_2046.Multipart.Subtype: CustomStringConvertible {}
 
-// MARK: - RawRepresentable
-
-extension RFC_2046.Multipart.Subtype: RawRepresentable {
-    /// Creates a multipart subtype
-    ///
-    /// The value is normalized to lowercase per RFC 2045 case-insensitivity.
-    ///
-    /// String parsing derives from canonical byte parsing:
-    /// ```
-    /// String → [UInt8] (UTF-8) → Subtype
-    /// ```
-    ///
-    /// - Parameter rawValue: The subtype name
-    public init(rawValue: String) {
-        // swiftlint:disable:next force_try
-        try! self.init(ascii: Array(rawValue.utf8))
-    }
-}
 
 // MARK: - Hashable
 
@@ -251,16 +237,6 @@ public extension RFC_2046.Multipart.Subtype {
 
 // MARK: - ExpressibleByStringLiteral
 
-extension RFC_2046.Multipart.Subtype: ExpressibleByStringLiteral {
-    public init(stringLiteral value: String) {
-        self.init(rawValue: value)
-    }
-}
-
 // MARK: - CustomStringConvertible
 
-extension RFC_2046.Multipart.Subtype: CustomStringConvertible {
-    public var description: String {
-        rawValue
-    }
-}
+

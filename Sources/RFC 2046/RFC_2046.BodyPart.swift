@@ -1,4 +1,6 @@
+import INCITS_4_1986
 public import RFC_5322
+import RFC_4648
 
 public extension RFC_2046 {
     /// A single part within a multipart message
@@ -25,100 +27,252 @@ public extension RFC_2046 {
         /// Type-safe headers for this body part
         public let headers: Headers
 
-        /// Content of this body part (binary data)
-        public let content: [UInt8]
+        /// Content of this body part
+        public let content: Content
 
-        /// Creates a body part with typed headers and binary content
+        /// Creates a body part with typed headers and content
         ///
         /// - Parameters:
         ///   - headers: Type-safe MIME headers for this part
-        ///   - content: The body content (binary data)
-        public init(headers: Headers, content: [UInt8]) {
+        ///   - content: The body content
+        public init(headers: Headers, content: Content) {
             self.headers = headers
             self.content = content
         }
     }
 }
 
-// MARK: - Convenience Initializers
 
-public extension RFC_2046.BodyPart {
-    /// Creates a body part with Content-Type and binary content
-    ///
-    /// - Parameters:
-    ///   - contentType: Content-Type for this part
-    ///   - transferEncoding: Optional transfer encoding
-    ///   - additionalHeaders: Additional custom headers
-    ///   - content: The body content (binary data)
-    init(
-        contentType: RFC_2045.ContentType,
-        transferEncoding: RFC_2045.ContentTransferEncoding? = nil,
-        additionalHeaders: [RFC_5322.Header] = [],
-        content: [UInt8]
-    ) {
-        headers = Headers(
-            contentType: contentType,
-            contentTransferEncoding: transferEncoding,
-            custom: additionalHeaders
-        )
-        self.content = content
-    }
+// MARK: - UInt8.ASCII.Serializing
 
-    /// Creates a body part with Content-Type and text content
-    ///
-    /// Convenience initializer for text content that converts to UTF-8 data.
-    ///
-    /// - Parameters:
-    ///   - contentType: Content-Type for this part
-    ///   - transferEncoding: Optional transfer encoding
-    ///   - additionalHeaders: Additional custom headers
-    ///   - text: The text content (will be converted to UTF-8)
-    init(
-        contentType: RFC_2045.ContentType,
-        transferEncoding: RFC_2045.ContentTransferEncoding? = nil,
-        additionalHeaders: [RFC_5322.Header] = [],
-        text: String
-    ) {
-        self.init(
-            contentType: contentType,
-            transferEncoding: transferEncoding,
-            additionalHeaders: additionalHeaders,
-            content: Array(text.utf8)
-        )
-    }
+extension RFC_2046.BodyPart: UInt8.ASCII.Serializing {
+    /// Serialize to canonical byte representation
+    public static let serialize: @Sendable (Self) -> [UInt8] = { [UInt8]($0) }
 
-    /// Creates a body part with typed headers and text content
+    /// Parses a body part from bytes (AUTHORITATIVE IMPLEMENTATION)
     ///
-    /// Convenience initializer for text content that converts to UTF-8 data.
+    /// Parses headers up to the first blank line, then treats remaining
+    /// bytes as content.
     ///
-    /// - Parameters:
-    ///   - headers: Type-safe MIME headers for this part
-    ///   - text: The text content (will be converted to UTF-8)
-    init(headers: Headers, text: String) {
-        self.init(headers: headers, content: Array(text.utf8))
+    /// ## Format
+    ///
+    /// ```
+    /// Header-Name: Header-Value CRLF
+    /// Another-Header: Value CRLF
+    /// CRLF
+    /// content bytes...
+    /// ```
+    ///
+    /// ## Performance
+    ///
+    /// - Uses efficient byte sequence search
+    /// - Single pass through input bytes
+    ///
+    /// ## Example
+    ///
+    /// ```swift
+    /// let bytes = Array("Content-Type: text/plain\r\n\r\nHello!".utf8)
+    /// let part = try RFC_2046.BodyPart(ascii: bytes)
+    /// ```
+    ///
+    /// - Parameter bytes: The body part bytes (headers + blank line + content)
+    /// - Throws: `RFC_2046.BodyPart.Error` if parsing fails
+    public init<Bytes: Collection>(ascii bytes: Bytes, in context: Void = ()) throws(Error)
+    where Bytes.Element == UInt8 {
+        let byteArray = Array(bytes)
+
+        // Find the blank line separating headers from content
+        // Look for CRLF CRLF or LF LF
+        let crlf: [UInt8] = .ascii.crlf
+        var doubleCrlf: [UInt8] = []
+        doubleCrlf.reserveCapacity(4)
+        doubleCrlf.append(contentsOf: crlf)
+        doubleCrlf.append(contentsOf: crlf)
+
+        let doubleLf: [UInt8] = [.ascii.lf, .ascii.lf]
+
+        var headerEndIndex: Int?
+        var contentStartIndex: Int?
+
+        // Try CRLF CRLF first (standard)
+        if let idx = byteArray.firstIndex(of: doubleCrlf) {
+            headerEndIndex = idx
+            contentStartIndex = idx + doubleCrlf.count
+        }
+        // Fall back to LF LF (lenient)
+        else if let idx = byteArray.firstIndex(of: doubleLf) {
+            headerEndIndex = idx
+            contentStartIndex = idx + doubleLf.count
+        }
+
+        guard let headerEnd = headerEndIndex, let contentStart = contentStartIndex else {
+            // No blank line found - treat as headers only with empty content
+            let headerBytes = byteArray
+            let headers: Headers
+            do {
+                headers = try Headers(ascii: headerBytes)
+            } catch {
+                throw Error.invalidHeaders("\(error)")
+            }
+            self.init(headers: headers, content: Content([]))
+            return
+        }
+
+        // Parse headers
+        let headerBytes = Array(byteArray[..<headerEnd])
+        let headers: Headers
+        do {
+            headers = try Headers(ascii: headerBytes)
+        } catch {
+            throw Error.invalidHeaders("\(error)")
+        }
+
+        // Extract content
+        let contentBytes: [UInt8]
+        if contentStart < byteArray.count {
+            contentBytes = Array(byteArray[contentStart...])
+        } else {
+            contentBytes = []
+        }
+
+        self.init(headers: headers, content: Content(contentBytes))
     }
 }
+
+public extension [UInt8] {
+    /// Creates bytes from RFC 2046 BodyPart (AUTHORITATIVE IMPLEMENTATION)
+    ///
+    /// Serializes headers and content. Note: This does NOT include
+    /// boundary delimiters - use Multipart serialization for complete messages.
+    ///
+    /// Applies Content-Transfer-Encoding if specified in headers:
+    /// - base64: Encodes content as base64
+    /// - quoted-printable: Uses raw content (not yet implemented)
+    /// - 7bit/8bit/binary: Uses raw content
+    ///
+    /// ## Category Theory
+    ///
+    /// Serialization (natural transformation):
+    /// - **Domain**: RFC_2046.BodyPart (structured data)
+    /// - **Codomain**: [UInt8] (bytes)
+    ///
+    /// ## Example
+    ///
+    /// ```swift
+    /// let part = RFC_2046.BodyPart(
+    ///     contentType: .textPlainUTF8,
+    ///     text: "Hello!"
+    /// )
+    /// let bytes = [UInt8](part)
+    /// ```
+    ///
+    /// - Parameter bodyPart: The body part to serialize
+    init(_ bodyPart: RFC_2046.BodyPart) {
+        self = []
+
+        let contentBytes = [UInt8](bodyPart.content)
+
+        // Estimate capacity: headers (~200) + CRLF (2) + content
+        reserveCapacity(200 + 2 + contentBytes.count)
+
+        let crlf: [UInt8] = .ascii.crlf
+
+        // Headers (byte-based)
+        self.append(contentsOf: [UInt8](bodyPart.headers))
+
+        // Blank line
+        self.append(contentsOf: crlf)
+
+        // Content with encoding applied
+        if let encoding = bodyPart.transferEncoding {
+            switch encoding {
+            case .base64:
+                self.append(contentsOf: RFC_4648.Base64.encode(contentBytes))
+            case .quotedPrintable:
+                // Quoted-printable encoding not yet implemented; use raw content
+                self.append(contentsOf: contentBytes)
+            default:
+                // 7bit, 8bit, binary: use raw content
+                self.append(contentsOf: contentBytes)
+            }
+        } else {
+            // No encoding specified: use raw content
+            self.append(contentsOf: contentBytes)
+        }
+    }
+}
+
+//// MARK: - Convenience Initializers
+//
+//public extension RFC_2046.BodyPart {
+//    /// Creates a body part with Content-Type and content
+//    ///
+//    /// - Parameters:
+//    ///   - contentType: Content-Type for this part
+//    ///   - transferEncoding: Optional transfer encoding
+//    ///   - additionalHeaders: Additional custom headers
+//    ///   - content: The body content
+//    init(
+//        contentType: RFC_2045.ContentType,
+//        transferEncoding: RFC_2045.ContentTransferEncoding? = nil,
+//        additionalHeaders: [RFC_5322.Header] = [],
+//        content: Content
+//    ) {
+//        headers = Headers(
+//            contentType: contentType,
+//            contentTransferEncoding: transferEncoding,
+//            custom: additionalHeaders
+//        )
+//        self.content = content
+//    }
+//
+//    /// Creates a body part with Content-Type and text content
+//    ///
+//    /// Convenience initializer for text content.
+//    ///
+//    /// - Parameters:
+//    ///   - contentType: Content-Type for this part
+//    ///   - transferEncoding: Optional transfer encoding
+//    ///   - additionalHeaders: Additional custom headers
+//    ///   - text: The text content
+//    init(
+//        contentType: RFC_2045.ContentType,
+//        transferEncoding: RFC_2045.ContentTransferEncoding? = nil,
+//        additionalHeaders: [RFC_5322.Header] = [],
+//        text: String
+//    ) {
+//        self.init(
+//            contentType: contentType,
+//            transferEncoding: transferEncoding,
+//            additionalHeaders: additionalHeaders,
+//            content: Content(text)
+//        )
+//    }
+//
+//    /// Creates a body part with typed headers and text content
+//    ///
+//    /// Convenience initializer for text content.
+//    ///
+//    /// - Parameters:
+//    ///   - headers: Type-safe MIME headers for this part
+//    ///   - text: The text content
+//    init(headers: Headers, text: String) {
+//        self.init(headers: headers, content: Content(text))
+//    }
+//}
 
 // MARK: - Computed Properties
 
 public extension RFC_2046.BodyPart {
     /// The Content-Type of this part, if specified
     var contentType: RFC_2045.ContentType? {
-        guard let value = headers[.contentType] else { return nil }
-        return try? RFC_2045.ContentType(value)
+        headers.contentType
     }
 
     /// The Content-Transfer-Encoding of this part, if specified
     var transferEncoding: RFC_2045.ContentTransferEncoding? {
-        guard let value = headers[.contentTransferEncoding] else { return nil }
-        return RFC_2045.ContentTransferEncoding(rawValue: value)
-    }
-
-    /// The content decoded as UTF-8 text
-    ///
-    /// Returns nil if the content is not valid UTF-8.
-    /// Useful for text parts and debugging.
-    var textContent: String? {
-        String(decoding: content, as: UTF8.self)
+        headers.contentTransferEncoding
     }
 }
+
+

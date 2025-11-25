@@ -117,41 +117,41 @@ public extension RFC_2046 {
         }
     }
 }
-
-// MARK: - Convenience Initializers
-
-public extension RFC_2046.Multipart {
-    /// Creates a multipart message with a string boundary
-    ///
-    /// Convenience initializer that validates and converts a string boundary.
-    ///
-    /// - Parameters:
-    ///   - subtype: Multipart subtype
-    ///   - parts: Body parts (must not be empty)
-    ///   - boundary: Boundary string to validate
-    ///   - preamble: Optional preamble text
-    ///   - epilogue: Optional epilogue text
-    ///   - additionalParameters: Additional Content-Type parameters
-    ///
-    /// - Throws: `RFC_2046.Multipart.Error` if validation fails
-    init(
-        subtype: Subtype,
-        parts: [RFC_2046.BodyPart],
-        boundary: String,
-        preamble: String? = nil,
-        epilogue: String? = nil,
-        additionalParameters: [RFC_2045.Parameter.Name: String] = [:]
-    ) throws {
-        try self.init(
-            subtype: subtype,
-            parts: parts,
-            boundary: RFC_2046.Boundary(boundary),
-            preamble: preamble,
-            epilogue: epilogue,
-            additionalParameters: additionalParameters
-        )
-    }
-}
+//
+//// MARK: - Convenience Initializers
+//
+//public extension RFC_2046.Multipart {
+//    /// Creates a multipart message with a string boundary
+//    ///
+//    /// Convenience initializer that validates and converts a string boundary.
+//    ///
+//    /// - Parameters:
+//    ///   - subtype: Multipart subtype
+//    ///   - parts: Body parts (must not be empty)
+//    ///   - boundary: Boundary string to validate
+//    ///   - preamble: Optional preamble text
+//    ///   - epilogue: Optional epilogue text
+//    ///   - additionalParameters: Additional Content-Type parameters
+//    ///
+//    /// - Throws: `RFC_2046.Multipart.Error` if validation fails
+//    init(
+//        subtype: Subtype,
+//        parts: [RFC_2046.BodyPart],
+//        boundary: String,
+//        preamble: String? = nil,
+//        epilogue: String? = nil,
+//        additionalParameters: [RFC_2045.Parameter.Name: String] = [:]
+//    ) throws {
+//        try self.init(
+//            subtype: subtype,
+//            parts: parts,
+//            boundary: RFC_2046.Boundary(boundary),
+//            preamble: preamble,
+//            epilogue: epilogue,
+//            additionalParameters: additionalParameters
+//        )
+//    }
+//}
 
 // MARK: - Computed Properties
 
@@ -248,49 +248,28 @@ extension RFC_2046.Multipart: UInt8.ASCII.Serializing {
     /// - Throws: `RFC_2046.Multipart.Error` if parsing fails
     public init<Bytes: Collection>(ascii bytes: Bytes, in context: Context) throws(Error)
     where Bytes.Element == UInt8 {
-        // Build boundary delimiters as bytes
+        // Build boundary delimiters as bytes (with reserveCapacity to avoid reallocations)
         let boundaryBytes = [UInt8](context.boundary)
-        let delimiterPrefix: [UInt8] = [.ascii.hyphen, .ascii.hyphen]
-        let delimiter = delimiterPrefix + boundaryBytes
-        let finalDelimiter = delimiter + delimiterPrefix
+
+        var delimiter: [UInt8] = []
+        delimiter.reserveCapacity(2 + boundaryBytes.count)
+        delimiter.append(.ascii.hyphen)
+        delimiter.append(.ascii.hyphen)
+        delimiter.append(contentsOf: boundaryBytes)
+
+        var finalDelimiter: [UInt8] = []
+        finalDelimiter.reserveCapacity(delimiter.count + 2)
+        finalDelimiter.append(contentsOf: delimiter)
+        finalDelimiter.append(.ascii.hyphen)
+        finalDelimiter.append(.ascii.hyphen)
 
         var parts: [RFC_2046.BodyPart] = []
         var preambleBytes: [UInt8]?
         var epilogueBytes: [UInt8]?
 
-        // Split into lines (CRLF, CR, or LF for leniency)
-        var lines: [[UInt8]] = []
-        var currentLine: [UInt8] = []
-
-        var index = bytes.startIndex
-        while index < bytes.endIndex {
-            let byte = bytes[index]
-
-            if byte == .ascii.cr {
-                let next = bytes.index(after: index)
-                if next < bytes.endIndex && bytes[next] == .ascii.lf {
-                    // CRLF
-                    lines.append(currentLine)
-                    currentLine = []
-                    index = bytes.index(after: next)
-                } else {
-                    // Just CR
-                    lines.append(currentLine)
-                    currentLine = []
-                    index = next
-                }
-            } else if byte == .ascii.lf {
-                // Just LF
-                lines.append(currentLine)
-                currentLine = []
-                index = bytes.index(after: index)
-            } else {
-                currentLine.append(byte)
-                index = bytes.index(after: index)
-            }
-        }
-        // Add final line
-        lines.append(currentLine)
+        // Use lineRanges() for zero-copy line access, then copy only what we need
+        let byteArray = Array(bytes)
+        let lineRanges = byteArray.ascii.lineRanges(estimatedLineCount: byteArray.count / 40)
 
         var preambleLines: [[UInt8]] = []
         var inPreamble = true
@@ -301,62 +280,65 @@ extension RFC_2046.Multipart: UInt8.ASCII.Serializing {
 
         let crlf: [UInt8] = .ascii.crlf
 
-        for line in lines {
-            if line == delimiter {
+        for range in lineRanges {
+            let lineSlice = byteArray[range]
+
+            if lineSlice.elementsEqual(delimiter) {
                 // Start of new part
                 if inPart {
-                    // Save previous part
-                    let headerBytes = Array(partHeaderLines.joined(separator: crlf))
-                    let contentBytes = Array(partContentLines.joined(separator: crlf))
+                    // Save previous part using efficient joined()
+                    let headerBytes = partHeaderLines.joined(separator: crlf)
+                    let contentBytes = partContentLines.joined(separator: crlf)
                     let headers: RFC_2046.BodyPart.Headers
                     do {
                         headers = try RFC_2046.BodyPart.Headers(ascii: headerBytes)
                     } catch {
                         throw Error.invalidBodyPart("Headers: \(error)")
                     }
-                    parts.append(RFC_2046.BodyPart(headers: headers, content: contentBytes))
+                    parts.append(RFC_2046.BodyPart(headers: headers, content: RFC_2046.BodyPart.Content(contentBytes)))
                 }
                 if inPreamble {
-                    preambleBytes = preambleLines.isEmpty ? nil : Array(preambleLines.joined(separator: crlf))
+                    preambleBytes = preambleLines.isEmpty ? nil : preambleLines.joined(separator: crlf)
                     inPreamble = false
                 }
                 inPart = true
                 inHeaders = true
                 partHeaderLines = []
                 partContentLines = []
-            } else if line == finalDelimiter {
+            } else if lineSlice.elementsEqual(finalDelimiter) {
                 // End of multipart
                 if inPart {
-                    let headerBytes = Array(partHeaderLines.joined(separator: crlf))
-                    let contentBytes = Array(partContentLines.joined(separator: crlf))
+                    let headerBytes = partHeaderLines.joined(separator: crlf)
+                    let contentBytes = partContentLines.joined(separator: crlf)
                     let headers: RFC_2046.BodyPart.Headers
                     do {
                         headers = try RFC_2046.BodyPart.Headers(ascii: headerBytes)
                     } catch {
                         throw Error.invalidBodyPart("Headers: \(error)")
                     }
-                    parts.append(RFC_2046.BodyPart(headers: headers, content: contentBytes))
+                    parts.append(RFC_2046.BodyPart(headers: headers, content: RFC_2046.BodyPart.Content(contentBytes)))
                 }
                 inPart = false
             } else if inPart {
                 if inHeaders {
-                    if line.isEmpty {
+                    if lineSlice.isEmpty {
                         // Empty line ends headers, starts content
                         inHeaders = false
                     } else {
-                        partHeaderLines.append(line)
+                        partHeaderLines.append(Array(lineSlice))
                     }
                 } else {
-                    partContentLines.append(line)
+                    partContentLines.append(Array(lineSlice))
                 }
             } else if inPreamble {
-                preambleLines.append(line)
+                preambleLines.append(Array(lineSlice))
             } else {
-                // Epilogue
+                // Epilogue - use separate appends to avoid intermediate allocations
                 if epilogueBytes == nil {
-                    epilogueBytes = line
+                    epilogueBytes = Array(lineSlice)
                 } else {
-                    epilogueBytes! += crlf + line
+                    epilogueBytes!.append(contentsOf: crlf)
+                    epilogueBytes!.append(contentsOf: lineSlice)
                 }
             }
         }
@@ -368,5 +350,114 @@ extension RFC_2046.Multipart: UInt8.ASCII.Serializing {
             preamble: preambleBytes.map { String(decoding: $0, as: UTF8.self) },
             epilogue: epilogueBytes.map { String(decoding: $0, as: UTF8.self) }
         )
+    }
+}
+
+public extension [UInt8] {
+    /// Creates ASCII bytes from RFC 2046 Multipart message
+    ///
+    /// Serializes the complete multipart body including boundaries,
+    /// preamble, parts, and epilogue as raw bytes.
+    ///
+    /// ## Category Theory
+    ///
+    /// Serialization (natural transformation):
+    /// - **Domain**: RFC_2046.Multipart (structured data)
+    /// - **Codomain**: [UInt8] (ASCII bytes with embedded binary)
+    ///
+    /// ## RFC 2046 Format
+    ///
+    /// ```
+    /// [preamble CRLF]
+    /// --boundary CRLF
+    /// headers CRLF
+    /// CRLF
+    /// content
+    /// --boundary CRLF
+    /// ...
+    /// --boundary-- CRLF
+    /// [epilogue]
+    /// ```
+    ///
+    /// ## Example
+    ///
+    /// ```swift
+    /// let multipart = try RFC_2046.Multipart(
+    ///     subtype: .alternative,
+    ///     parts: [textPart, htmlPart],
+    ///     boundary: "----=_Part_12345"
+    /// )
+    /// let bytes = [UInt8](multipart)
+    /// ```
+    ///
+    /// - Parameter multipart: The multipart message to serialize
+    init(_ multipart: RFC_2046.Multipart) {
+        self = []
+
+        // Estimate capacity
+        var estimatedSize = 0
+        estimatedSize += (multipart.preamble?.utf8.count ?? 0) + 4
+        estimatedSize += multipart.parts.count * (multipart.boundary.rawValue.count + 10)
+        for part in multipart.parts {
+            estimatedSize += [UInt8](part.content).count + 200 // headers estimate
+        }
+        estimatedSize += (multipart.epilogue?.utf8.count ?? 0) + 4
+        self.reserveCapacity(estimatedSize)
+
+        let crlf: [UInt8] = .ascii.crlf
+        let boundaryPrefix: [UInt8] = [.ascii.hyphen, .ascii.hyphen]
+        let boundaryBytes = [UInt8](multipart.boundary)
+
+        // Preamble (optional)
+        if let preamble = multipart.preamble {
+            self.append(contentsOf: preamble.utf8)
+            self.append(contentsOf: crlf)
+            self.append(contentsOf: crlf)
+        }
+
+        // Body parts
+        for part in multipart.parts {
+            // Boundary delimiter
+            self.append(contentsOf: boundaryPrefix)
+            self.append(contentsOf: boundaryBytes)
+            self.append(contentsOf: crlf)
+
+            // Headers (using byte serialization)
+            self.append(contentsOf: [UInt8](part.headers))
+
+            // Blank line between headers and content
+            self.append(contentsOf: crlf)
+
+            // Content with encoding applied (may be binary)
+            let contentBytes = [UInt8](part.content)
+            if let encoding = part.transferEncoding {
+                switch encoding {
+                case .base64:
+                    self.append(contentsOf: RFC_4648.Base64.encode(contentBytes))
+                case .quotedPrintable:
+                    // Quoted-printable encoding not yet implemented; use raw content
+                    self.append(contentsOf: contentBytes)
+                default:
+                    // 7bit, 8bit, binary: use raw content
+                    self.append(contentsOf: contentBytes)
+                }
+            } else {
+                // No encoding specified: use raw content
+                self.append(contentsOf: contentBytes)
+            }
+            self.append(contentsOf: crlf)
+        }
+
+        // Final boundary
+        self.append(contentsOf: boundaryPrefix)
+        self.append(contentsOf: boundaryBytes)
+        self.append(contentsOf: boundaryPrefix) // "--" suffix for final
+        self.append(contentsOf: crlf)
+
+        // Epilogue (optional)
+        if let epilogue = multipart.epilogue {
+            self.append(contentsOf: epilogue.utf8)
+            self.append(contentsOf: crlf)
+        }
     }
 }

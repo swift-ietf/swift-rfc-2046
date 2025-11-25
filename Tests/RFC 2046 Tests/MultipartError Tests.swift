@@ -95,7 +95,7 @@ struct `Multipart.Error - Error cases` {
             _ = try RFC_2046.Multipart(
                 subtype: .mixed,
                 parts: [],
-                boundary: "test"
+                boundary: .init("test")
             )
         }
     }
@@ -106,7 +106,7 @@ struct `Multipart.Error - Error cases` {
             _ = try RFC_2046.Multipart(
                 subtype: .mixed,
                 parts: [],
-                boundary: "test"
+                boundary: .init("test")
             )
             Issue.record("Expected error to be thrown")
         } catch let error as RFC_2046.Multipart.Error {
@@ -196,15 +196,14 @@ struct `Headers.Error - Error cases` {
 struct `Error - Integration` {
     @Test
     func `Valid multipart can be created`() throws {
-        let part = RFC_2046.BodyPart(
-            contentType: .textPlainUTF8,
-            text: "Hello!"
-        )
+        let headers = RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8)
+        let content = try RFC_2046.BodyPart.Content("Hello!")
+        let part = RFC_2046.BodyPart(headers: headers, content: content)
 
         let multipart = try RFC_2046.Multipart(
             subtype: .mixed,
             parts: [part],
-            boundary: "----=_Part_12345"
+            boundary: .init("----=_Part_12345")
         )
 
         #expect(multipart.parts.count == 1)
@@ -212,12 +211,16 @@ struct `Error - Integration` {
     }
 
     @Test
-    func `Boundary errors propagate through Multipart init`() {
+    func `Boundary errors propagate through Multipart init`() throws {
+        let headers = RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8)
+        let content = try RFC_2046.BodyPart.Content("test")
+        let part = RFC_2046.BodyPart(headers: headers, content: content)
+
         #expect(throws: Error.self) {
             _ = try RFC_2046.Multipart(
                 subtype: .mixed,
-                parts: [RFC_2046.BodyPart(contentType: .textPlainUTF8, text: "test")],
-                boundary: "" // Invalid boundary
+                parts: [part],
+                boundary: .init("") // Invalid boundary
             )
         }
     }
