@@ -1,15 +1,14 @@
-import Testing
+import Foundation
 import RFC_2045
+@testable import RFC_2046
 import RFC_2183
 import RFC_5322
-@testable import RFC_2046
-import Foundation
+import Testing
 
 // MARK: - BodyPart Initialization
 
 @Suite
 struct `BodyPart - Initialization with typed headers` {
-
     @Test
     func `Initialize with headers and binary content`() {
         let headers = RFC_2046.BodyPart.Headers(
@@ -44,7 +43,7 @@ struct `BodyPart - Initialization with typed headers` {
 
         let part = RFC_2046.BodyPart(headers: headers, text: "")
 
-        #expect(part.textContent == "")
+        #expect(part.textContent?.isEmpty == true)
         #expect(part.content.isEmpty)
     }
 
@@ -62,7 +61,6 @@ struct `BodyPart - Initialization with typed headers` {
 
 @Suite
 struct `BodyPart - Initialization with content type` {
-
     @Test
     func `Initialize with content type and text`() {
         let part = RFC_2046.BodyPart(
@@ -76,7 +74,7 @@ struct `BodyPart - Initialization with content type` {
 
     @Test
     func `Initialize with content type and binary content`() {
-        let content: [UInt8] = [0x48, 0x65, 0x6c, 0x6c, 0x6f]
+        let content: [UInt8] = [0x48, 0x65, 0x6C, 0x6C, 0x6F]
         let part = RFC_2046.BodyPart(
             contentType: .textPlainUTF8,
             content: content
@@ -99,29 +97,29 @@ struct `BodyPart - Initialization with content type` {
     }
 
     @Test
-    func `Initialize with additional headers`() {
-        let part = RFC_2046.BodyPart(
+    func `Initialize with additional headers`() throws {
+        let part = try RFC_2046.BodyPart(
             contentType: .textPlainUTF8,
-            additionalHeaders: [.init(name: "X-Custom", value: "value")],
+            additionalHeaders: [.init(name: .init("X-Custom"), value: .init("value"))],
             text: "Hello"
         )
 
         #expect(part.contentType == .textPlainUTF8)
-        #expect(part.headers["X-Custom"] == "value")
+        #expect(try part.headers[.init("X-Custom")] == "value")
     }
 
     @Test
-    func `Initialize with all parameters`() {
-        let part = RFC_2046.BodyPart(
+    func `Initialize with all parameters`() throws {
+        let part = try RFC_2046.BodyPart(
             contentType: .textHTMLUTF8,
             transferEncoding: .quotedPrintable,
-            additionalHeaders: [.init(name: "X-Custom", value: "value")],
+            additionalHeaders: [.init(name: .init("X-Custom"), value: .init("value"))],
             text: "<h1>Hello</h1>"
         )
 
         #expect(part.contentType == .textHTMLUTF8)
         #expect(part.transferEncoding == .quotedPrintable)
-        #expect(part.headers["X-Custom"] == "value")
+        #expect(try part.headers[.init("X-Custom")] == "value")
         #expect(part.textContent == "<h1>Hello</h1>")
     }
 }
@@ -130,7 +128,6 @@ struct `BodyPart - Initialization with content type` {
 
 @Suite
 struct `BodyPart - Content access` {
-
     @Test
     func `Text content is accessible`() {
         let part = RFC_2046.BodyPart(
@@ -186,7 +183,7 @@ struct `BodyPart - Content access` {
             text: ""
         )
 
-        #expect(part.textContent == "")
+        #expect(part.textContent?.isEmpty == true)
     }
 }
 
@@ -194,7 +191,6 @@ struct `BodyPart - Content access` {
 
 @Suite
 struct `BodyPart - Header access` {
-
     @Test
     func `Content-Type is accessible`() {
         let part = RFC_2046.BodyPart(
@@ -217,17 +213,17 @@ struct `BodyPart - Header access` {
     }
 
     @Test
-    func `Headers dictionary contains all headers`() {
-        let part = RFC_2046.BodyPart(
+    func `Headers dictionary contains all headers`() throws {
+        let part = try RFC_2046.BodyPart(
             contentType: .textPlainUTF8,
             transferEncoding: .sevenBit,
-            additionalHeaders: [.init(name: "X-Custom", value: "value")],
+            additionalHeaders: [.init(name: .init("X-Custom"), value: .init("value"))],
             text: "Hello"
         )
 
-        #expect(part.headers["Content-Type"] != nil)
-        #expect(part.headers["Content-Transfer-Encoding"] != nil)
-        #expect(part.headers["X-Custom"] == "value")
+        #expect(part.headers[.contentType] != nil)
+        #expect(part.headers[.contentTransferEncoding] != nil)
+        #expect(try part.headers[.init("X-Custom")] == "value")
     }
 
     @Test
@@ -245,7 +241,6 @@ struct `BodyPart - Header access` {
 
 @Suite
 struct `BodyPart - Rendering headers` {
-
     @Test
     func `Render headers produces sorted output`() {
         let part = RFC_2046.BodyPart(
@@ -262,10 +257,10 @@ struct `BodyPart - Rendering headers` {
     }
 
     @Test
-    func `Render headers includes custom headers`() {
-        let part = RFC_2046.BodyPart(
+    func `Render headers includes custom headers`() throws {
+        let part = try RFC_2046.BodyPart(
             contentType: .textPlainUTF8,
-            additionalHeaders: [.init(name: "X-Custom", value: "value")],
+            additionalHeaders: [.init(name: .init("X-Custom"), value: .init("value"))],
             text: "Hello"
         )
 
@@ -299,35 +294,34 @@ struct `BodyPart - Rendering headers` {
 }
 
 @Suite
-struct `BodyPart - Rendering content` {
-
+struct `BodyPart - Encoded content serialization` {
     @Test
-    func `Render plain text content`() {
+    func `Serialize plain text content`() {
         let part = RFC_2046.BodyPart(
             contentType: .textPlainUTF8,
             text: "Hello, World!"
         )
 
-        let rendered = part.renderContent()
+        let encoded = [UInt8](encodedContent: part)
 
-        #expect(rendered == "Hello, World!")
+        #expect(String(decoding: encoded, as: UTF8.self) == "Hello, World!")
     }
 
     @Test
-    func `Render 7bit encoded content`() {
+    func `Serialize 7bit encoded content`() {
         let part = RFC_2046.BodyPart(
             contentType: .textPlainUTF8,
             transferEncoding: .sevenBit,
             text: "Hello"
         )
 
-        let rendered = part.renderContent()
+        let encoded = [UInt8](encodedContent: part)
 
-        #expect(rendered == "Hello")
+        #expect(String(decoding: encoded, as: UTF8.self) == "Hello")
     }
 
     @Test
-    func `Render base64 encoded content`() {
+    func `Serialize base64 encoded content`() {
         let text = "Hello, World!"
         let part = RFC_2046.BodyPart(
             contentType: .textPlainUTF8,
@@ -335,61 +329,62 @@ struct `BodyPart - Rendering content` {
             text: text
         )
 
-        let rendered = part.renderContent()
+        let encoded = [UInt8](encodedContent: part)
+        let encodedString = String(decoding: encoded, as: UTF8.self)
 
         // Should be base64 encoded
-        #expect(rendered != text)
-        #expect(rendered == "SGVsbG8sIFdvcmxkIQ==")
+        #expect(encodedString != text)
+        #expect(encodedString == "SGVsbG8sIFdvcmxkIQ==")
     }
 
     @Test
-    func `Render empty content`() {
+    func `Serialize empty content`() {
         let part = RFC_2046.BodyPart(
             contentType: .textPlainUTF8,
             text: ""
         )
 
-        let rendered = part.renderContent()
+        let encoded = [UInt8](encodedContent: part)
 
-        #expect(rendered.isEmpty)
+        #expect(encoded.isEmpty)
     }
 
     @Test
-    func `Render content with no transfer encoding`() {
+    func `Serialize content with no transfer encoding`() {
         let headers = RFC_2046.BodyPart.Headers(
             contentType: .textPlainUTF8
         )
         let part = RFC_2046.BodyPart(headers: headers, text: "Hello")
 
-        let rendered = part.renderContent()
+        let encoded = [UInt8](encodedContent: part)
 
-        #expect(rendered == "Hello")
+        #expect(String(decoding: encoded, as: UTF8.self) == "Hello")
     }
 
     @Test
-    func `Render binary content without encoding`() {
+    func `Serialize binary content without encoding`() {
         let content: [UInt8] = [72, 101, 108, 108, 111] // "Hello"
         let part = RFC_2046.BodyPart(
             contentType: .textPlainUTF8,
             content: content
         )
 
-        let rendered = part.renderContent()
+        let encoded = [UInt8](encodedContent: part)
 
-        #expect(rendered == "Hello")
+        #expect(String(decoding: encoded, as: UTF8.self) == "Hello")
     }
 
     @Test
-    func `Render multiline text preserves line breaks`() {
+    func `Serialize multiline text preserves line breaks`() {
         let text = "Line 1\r\nLine 2\r\nLine 3"
         let part = RFC_2046.BodyPart(
             contentType: .textPlainUTF8,
             text: text
         )
 
-        let rendered = part.renderContent()
+        let encoded = [UInt8](encodedContent: part)
 
-        #expect(rendered == text)
+        #expect(String(decoding: encoded, as: UTF8.self) == text)
     }
 }
 
@@ -397,7 +392,6 @@ struct `BodyPart - Rendering content` {
 
 @Suite
 struct `BodyPart - Hashable and Equatable` {
-
     @Test
     func `Same parts are equal`() {
         let a = RFC_2046.BodyPart(
@@ -457,13 +451,12 @@ struct `BodyPart - Hashable and Equatable` {
 
 @Suite
 struct `BodyPart - Codable` {
-
     @Test
     func `Round-trip encoding preserves part`() throws {
-        let original = RFC_2046.BodyPart(
+        let original = try RFC_2046.BodyPart(
             contentType: .textPlainUTF8,
             transferEncoding: .base64,
-            additionalHeaders: [.init(name: "X-Custom", value: "value")],
+            additionalHeaders: [RFC_5322.Header(name: .init("X-Custom"), value: .init("value"))],
             text: "Hello, World!"
         )
 
@@ -483,7 +476,7 @@ struct `BodyPart - Codable` {
     func `Encoding preserves binary content`() throws {
         let content: [UInt8] = [0xFF, 0xD8, 0xFF, 0xE0] // JPEG header
         let original = RFC_2046.BodyPart(
-            contentType: RFC_2045.ContentType(type: "image", subtype: "jpeg"),
+            contentType: .imageJPEG,
             content: content
         )
 
@@ -515,7 +508,6 @@ struct `BodyPart - Codable` {
 
 @Suite
 struct `BodyPart - Sendable conformance` {
-
     @Test
     func `BodyPart can be sent across concurrency domains`() async {
         let part = RFC_2046.BodyPart(
@@ -535,7 +527,6 @@ struct `BodyPart - Sendable conformance` {
 
 @Suite
 struct `BodyPart - Edge cases` {
-
     @Test
     func `Unicode content is preserved`() {
         let text = "Hello 世界 🌍"
@@ -563,7 +554,7 @@ struct `BodyPart - Edge cases` {
     func `Binary content with null bytes`() {
         let content: [UInt8] = [0x00, 0x01, 0x02, 0x00, 0xFF]
         let part = RFC_2046.BodyPart(
-            contentType: RFC_2045.ContentType(type: "application", subtype: "octet-stream"),
+            contentType: .applicationOctetStream,
             content: content
         )
 

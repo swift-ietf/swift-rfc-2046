@@ -1,7 +1,6 @@
-public import RFC_4648
 public import RFC_5322
 
-extension RFC_2046 {
+public extension RFC_2046 {
     /// A single part within a multipart message
     ///
     /// Each body part has its own headers and content (text or binary).
@@ -22,7 +21,7 @@ extension RFC_2046 {
     ///     content: imageData
     /// )
     /// ```
-    public struct BodyPart: Hashable, Sendable, Codable {
+    struct BodyPart: Hashable, Sendable, Codable {
         /// Type-safe headers for this body part
         public let headers: Headers
 
@@ -43,7 +42,7 @@ extension RFC_2046 {
 
 // MARK: - Convenience Initializers
 
-extension RFC_2046.BodyPart {
+public extension RFC_2046.BodyPart {
     /// Creates a body part with Content-Type and binary content
     ///
     /// - Parameters:
@@ -51,13 +50,13 @@ extension RFC_2046.BodyPart {
     ///   - transferEncoding: Optional transfer encoding
     ///   - additionalHeaders: Additional custom headers
     ///   - content: The body content (binary data)
-    public init(
+    init(
         contentType: RFC_2045.ContentType,
         transferEncoding: RFC_2045.ContentTransferEncoding? = nil,
         additionalHeaders: [RFC_5322.Header] = [],
         content: [UInt8]
     ) {
-        self.headers = Headers(
+        headers = Headers(
             contentType: contentType,
             contentTransferEncoding: transferEncoding,
             custom: additionalHeaders
@@ -74,7 +73,7 @@ extension RFC_2046.BodyPart {
     ///   - transferEncoding: Optional transfer encoding
     ///   - additionalHeaders: Additional custom headers
     ///   - text: The text content (will be converted to UTF-8)
-    public init(
+    init(
         contentType: RFC_2045.ContentType,
         transferEncoding: RFC_2045.ContentTransferEncoding? = nil,
         additionalHeaders: [RFC_5322.Header] = [],
@@ -95,61 +94,31 @@ extension RFC_2046.BodyPart {
     /// - Parameters:
     ///   - headers: Type-safe MIME headers for this part
     ///   - text: The text content (will be converted to UTF-8)
-    public init(headers: Headers, text: String) {
+    init(headers: Headers, text: String) {
         self.init(headers: headers, content: Array(text.utf8))
-    }
-}
-
-// MARK: - Rendering
-
-extension RFC_2046.BodyPart {
-    /// Renders the content with appropriate encoding
-    ///
-    /// Applies Content-Transfer-Encoding if specified in headers:
-    /// - base64: Encodes content as base64
-    /// - quoted-printable: Encodes with quoted-printable (fallback to raw for now)
-    /// - 7bit/8bit/binary: Uses raw content as UTF-8 string
-    func renderContent() -> String {
-        if let encoding = transferEncoding {
-            switch encoding {
-            case .base64:
-                let encoded = RFC_4648.Base64.encode(content)
-                return String(decoding: encoded, as: UTF8.self)
-            case .quotedPrintable:
-                // TODO: Implement quoted-printable encoding
-                // For now, fall through to raw
-                fallthrough
-            default:
-                // 7bit, 8bit, binary: treat as UTF-8 text
-                return String(decoding: content, as: UTF8.self)
-            }
-        } else {
-            // No encoding specified: treat as UTF-8 text
-            return String(decoding: content, as: UTF8.self)
-        }
     }
 }
 
 // MARK: - Computed Properties
 
-extension RFC_2046.BodyPart {
+public extension RFC_2046.BodyPart {
     /// The Content-Type of this part, if specified
-    public var contentType: RFC_2045.ContentType? {
-        guard let value = headers["Content-Type"] else { return nil }
-        return try? RFC_2045.ContentType(parsing: value)
+    var contentType: RFC_2045.ContentType? {
+        guard let value = headers[.contentType] else { return nil }
+        return try? RFC_2045.ContentType(value)
     }
 
     /// The Content-Transfer-Encoding of this part, if specified
-    public var transferEncoding: RFC_2045.ContentTransferEncoding? {
-        guard let value = headers["Content-Transfer-Encoding"] else { return nil }
-        return try? RFC_2045.ContentTransferEncoding(parsing: value)
+    var transferEncoding: RFC_2045.ContentTransferEncoding? {
+        guard let value = headers[.contentTransferEncoding] else { return nil }
+        return RFC_2045.ContentTransferEncoding(rawValue: value)
     }
 
     /// The content decoded as UTF-8 text
     ///
     /// Returns nil if the content is not valid UTF-8.
     /// Useful for text parts and debugging.
-    public var textContent: String? {
+    var textContent: String? {
         String(decoding: content, as: UTF8.self)
     }
 }

@@ -1,14 +1,13 @@
-import Testing
 import Foundation
 import RFC_2045
-import RFC_2183
 @testable import RFC_2046
+import RFC_2183
+import Testing
 
 // MARK: - Multipart Initialization
 
 @Suite
 struct `Multipart - Valid initialization` {
-
     @Test
     func `Initialize with minimum parameters`() throws {
         let part = RFC_2046.BodyPart(
@@ -24,7 +23,7 @@ struct `Multipart - Valid initialization` {
 
         #expect(multipart.subtype == .mixed)
         #expect(multipart.parts.count == 1)
-        #expect(multipart.boundary.value == "test-boundary")
+        #expect(multipart.boundary.rawValue == "test-boundary")
         #expect(multipart.preamble == nil)
         #expect(multipart.epilogue == nil)
         #expect(multipart.additionalParameters.isEmpty)
@@ -60,11 +59,14 @@ struct `Multipart - Valid initialization` {
             subtype: .mixed,
             parts: [part],
             boundary: "test-boundary",
-            additionalParameters: ["type": "text/html", "start": "<part1>"]
+            additionalParameters: [
+                .init("type"): "text/html",
+                .init("start"): "<part1>",
+            ]
         )
 
-        #expect(multipart.additionalParameters["type"] == "text/html")
-        #expect(multipart.additionalParameters["start"] == "<part1>")
+        #expect(try multipart.additionalParameters[.init("type")] == "text/html")
+        #expect(try multipart.additionalParameters[.init("start")] == "<part1>")
     }
 
     @Test
@@ -72,7 +74,7 @@ struct `Multipart - Valid initialization` {
         let parts = [
             RFC_2046.BodyPart(contentType: .textPlainUTF8, text: "Part 1"),
             RFC_2046.BodyPart(contentType: .textHTMLUTF8, text: "<p>Part 2</p>"),
-            RFC_2046.BodyPart(contentType: .textPlainUTF8, text: "Part 3")
+            RFC_2046.BodyPart(contentType: .textPlainUTF8, text: "Part 3"),
         ]
 
         let multipart = try RFC_2046.Multipart(
@@ -104,7 +106,6 @@ struct `Multipart - Valid initialization` {
 
 @Suite
 struct `Multipart - Invalid initialization` {
-
     @Test
     func `Empty parts array throws error`() {
         #expect(throws: RFC_2046.Multipart.Error.emptyParts) {
@@ -153,12 +154,11 @@ struct `Multipart - Invalid initialization` {
 
 @Suite
 struct `Multipart.Subtype - Standard subtypes` {
-
     @Test(arguments: [
         ("mixed", RFC_2046.Multipart.Subtype.mixed),
         ("alternative", .alternative),
         ("digest", .digest),
-        ("parallel", .parallel)
+        ("parallel", .parallel),
     ])
     func `Standard subtype raw values`(rawValue: String, subtype: RFC_2046.Multipart.Subtype) {
         #expect(subtype.rawValue == rawValue)
@@ -193,7 +193,6 @@ struct `Multipart.Subtype - Standard subtypes` {
 
 @Suite
 struct `Multipart.Subtype - Protocol conformance` {
-
     @Test
     func `Subtypes are equatable`() {
         #expect(RFC_2046.Multipart.Subtype.mixed == .mixed)
@@ -205,7 +204,7 @@ struct `Multipart.Subtype - Protocol conformance` {
         let set: Set = [
             RFC_2046.Multipart.Subtype.mixed,
             .alternative,
-            .mixed // Duplicate
+            .mixed, // Duplicate
         ]
         #expect(set.count == 2)
     }
@@ -228,7 +227,6 @@ struct `Multipart.Subtype - Protocol conformance` {
 
 @Suite
 struct `Multipart - Content-Type generation` {
-
     @Test
     func `Content-Type includes boundary parameter`() throws {
         let part = RFC_2046.BodyPart(
@@ -246,7 +244,7 @@ struct `Multipart - Content-Type generation` {
 
         #expect(contentType.type == "multipart")
         #expect(contentType.subtype == "mixed")
-        #expect(contentType.parameters["boundary"] == "test-boundary")
+        #expect(try contentType.parameters[.init("boundary")] == "test-boundary")
     }
 
     @Test
@@ -260,13 +258,13 @@ struct `Multipart - Content-Type generation` {
             subtype: .mixed,
             parts: [part],
             boundary: "test-boundary",
-            additionalParameters: ["type": "text/html"]
+            additionalParameters: [.init("type"): "text/html"]
         )
 
         let contentType = multipart.contentType
 
-        #expect(contentType.parameters["boundary"] == "test-boundary")
-        #expect(contentType.parameters["type"] == "text/html")
+        #expect(try contentType.parameters[.init("boundary")] == "test-boundary")
+        #expect(try contentType.parameters[.init("type")] == "text/html")
     }
 
     @Test
@@ -293,7 +291,6 @@ struct `Multipart - Content-Type generation` {
 
 @Suite
 struct `Multipart - Rendering basic structure` {
-
     @Test
     func `Render includes boundary delimiters`() throws {
         let part = RFC_2046.BodyPart(
@@ -307,7 +304,7 @@ struct `Multipart - Rendering basic structure` {
             boundary: "test-boundary"
         )
 
-        let rendered = multipart.render()
+        let rendered = String(decoding: [UInt8](multipart), as: UTF8.self)
 
         #expect(rendered.contains("--test-boundary"))
         #expect(rendered.contains("--test-boundary--")) // Final boundary
@@ -326,7 +323,7 @@ struct `Multipart - Rendering basic structure` {
             boundary: "test-boundary"
         )
 
-        let rendered = multipart.render()
+        let rendered = String(decoding: [UInt8](multipart), as: UTF8.self)
 
         #expect(rendered.contains("Hello, World!"))
     }
@@ -345,7 +342,7 @@ struct `Multipart - Rendering basic structure` {
             boundary: "test-boundary"
         )
 
-        let rendered = multipart.render()
+        let rendered = String(decoding: [UInt8](multipart), as: UTF8.self)
 
         #expect(rendered.contains("Content-Type: text/plain"))
         #expect(rendered.contains("Content-Transfer-Encoding: 7bit"))
@@ -364,7 +361,7 @@ struct `Multipart - Rendering basic structure` {
             boundary: "test-boundary"
         )
 
-        let rendered = multipart.render()
+        let rendered = String(decoding: [UInt8](multipart), as: UTF8.self)
 
         #expect(rendered.contains("\r\n"))
     }
@@ -382,7 +379,7 @@ struct `Multipart - Rendering basic structure` {
             boundary: "test-boundary"
         )
 
-        let rendered = multipart.render()
+        let rendered = String(decoding: [UInt8](multipart), as: UTF8.self)
 
         #expect(rendered.hasSuffix("\r\n"))
     }
@@ -390,12 +387,11 @@ struct `Multipart - Rendering basic structure` {
 
 @Suite
 struct `Multipart - Rendering multiple parts` {
-
     @Test
     func `Render multiple parts with boundaries`() throws {
         let parts = [
             RFC_2046.BodyPart(contentType: .textPlainUTF8, text: "Part 1"),
-            RFC_2046.BodyPart(contentType: .textPlainUTF8, text: "Part 2")
+            RFC_2046.BodyPart(contentType: .textPlainUTF8, text: "Part 2"),
         ]
 
         let multipart = try RFC_2046.Multipart(
@@ -404,7 +400,7 @@ struct `Multipart - Rendering multiple parts` {
             boundary: "test-boundary"
         )
 
-        let rendered = multipart.render()
+        let rendered = String(decoding: [UInt8](multipart), as: UTF8.self)
 
         // Should have two occurrences of the boundary (one per part)
         let boundaryCount = rendered.components(separatedBy: "--test-boundary\r\n").count - 1
@@ -432,7 +428,7 @@ struct `Multipart - Rendering multiple parts` {
             boundary: "test-boundary"
         )
 
-        let rendered = multipart.render()
+        let rendered = String(decoding: [UInt8](multipart), as: UTF8.self)
 
         #expect(rendered.contains("Plain text version"))
         #expect(rendered.contains("<p>HTML version</p>"))
@@ -441,7 +437,6 @@ struct `Multipart - Rendering multiple parts` {
 
 @Suite
 struct `Multipart - Rendering with preamble and epilogue` {
-
     @Test
     func `Render includes preamble`() throws {
         let part = RFC_2046.BodyPart(
@@ -456,7 +451,7 @@ struct `Multipart - Rendering with preamble and epilogue` {
             preamble: "This is the preamble"
         )
 
-        let rendered = multipart.render()
+        let rendered = String(decoding: [UInt8](multipart), as: UTF8.self)
 
         #expect(rendered.contains("This is the preamble"))
 
@@ -483,7 +478,7 @@ struct `Multipart - Rendering with preamble and epilogue` {
             epilogue: "This is the epilogue"
         )
 
-        let rendered = multipart.render()
+        let rendered = String(decoding: [UInt8](multipart), as: UTF8.self)
 
         #expect(rendered.contains("This is the epilogue"))
 
@@ -511,7 +506,7 @@ struct `Multipart - Rendering with preamble and epilogue` {
             epilogue: "Epilogue text"
         )
 
-        let rendered = multipart.render()
+        let rendered = String(decoding: [UInt8](multipart), as: UTF8.self)
 
         #expect(rendered.contains("Preamble text"))
         #expect(rendered.contains("Epilogue text"))
@@ -522,7 +517,6 @@ struct `Multipart - Rendering with preamble and epilogue` {
 
 @Suite
 struct `Multipart - Parsing basic structure` {
-
     @Test
     func `Parse simple multipart message`() throws {
         let message = """
@@ -535,11 +529,8 @@ struct `Multipart - Parsing basic structure` {
         """
 
         let boundary = try RFC_2046.Boundary("test-boundary")
-        let multipart = try RFC_2046.Multipart.parse(
-            message,
-            boundary: boundary,
-            subtype: .mixed
-        )
+        let context = RFC_2046.Multipart.Context(boundary: boundary, subtype: .mixed)
+        let multipart = try RFC_2046.Multipart(ascii: Array(message.utf8), in: context)
 
         #expect(multipart.parts.count == 1)
         #expect(multipart.parts[0].textContent?.contains("Hello") == true)
@@ -561,10 +552,8 @@ struct `Multipart - Parsing basic structure` {
         """
 
         let boundary = try RFC_2046.Boundary("boundary")
-        let multipart = try RFC_2046.Multipart.parse(
-            message,
-            boundary: boundary
-        )
+        let context = RFC_2046.Multipart.Context(boundary: boundary)
+        let multipart = try RFC_2046.Multipart(ascii: Array(message.utf8), in: context)
 
         #expect(multipart.parts.count == 2)
     }
@@ -583,7 +572,8 @@ struct `Multipart - Parsing basic structure` {
         """
 
         let boundary = try RFC_2046.Boundary("boundary")
-        let multipart = try RFC_2046.Multipart.parse(message, boundary: boundary)
+        let context = RFC_2046.Multipart.Context(boundary: boundary)
+        let multipart = try RFC_2046.Multipart(ascii: Array(message.utf8), in: context)
 
         #expect(multipart.preamble?.contains("This is the preamble") == true)
     }
@@ -602,31 +592,31 @@ struct `Multipart - Parsing basic structure` {
         """
 
         let boundary = try RFC_2046.Boundary("boundary")
-        let multipart = try RFC_2046.Multipart.parse(message, boundary: boundary)
+        let context = RFC_2046.Multipart.Context(boundary: boundary)
+        let multipart = try RFC_2046.Multipart(ascii: Array(message.utf8), in: context)
 
         #expect(multipart.epilogue?.contains("This is the epilogue") == true)
     }
 }
 
 @Suite
-struct `Multipart - Round-trip parsing and rendering` {
-
+struct `Multipart - Round-trip serialization and parsing` {
     @Test
     func `Round-trip simple message`() throws {
         let original = try RFC_2046.Multipart(
             subtype: .mixed,
             parts: [
-                RFC_2046.BodyPart(contentType: .textPlainUTF8, text: "Hello")
+                RFC_2046.BodyPart(contentType: .textPlainUTF8, text: "Hello"),
             ],
             boundary: "test-boundary"
         )
 
-        let rendered = original.render()
-        let parsed = try RFC_2046.Multipart.parse(
-            rendered,
-            boundary: original.boundary,
-            subtype: original.subtype
-        )
+        // Serialize to bytes (canonical)
+        let bytes = [UInt8](original)
+
+        // Parse back from bytes
+        let context = RFC_2046.Multipart.Context(boundary: original.boundary, subtype: original.subtype)
+        let parsed = try RFC_2046.Multipart(ascii: bytes, in: context)
 
         #expect(parsed.parts.count == 1)
         #expect(parsed.boundary == original.boundary)
@@ -638,17 +628,17 @@ struct `Multipart - Round-trip parsing and rendering` {
             subtype: .alternative,
             parts: [
                 RFC_2046.BodyPart(contentType: .textPlainUTF8, text: "Text"),
-                RFC_2046.BodyPart(contentType: .textHTMLUTF8, text: "<p>HTML</p>")
+                RFC_2046.BodyPart(contentType: .textHTMLUTF8, text: "<p>HTML</p>"),
             ],
             boundary: "boundary"
         )
 
-        let rendered = original.render()
-        let parsed = try RFC_2046.Multipart.parse(
-            rendered,
-            boundary: original.boundary,
-            subtype: original.subtype
-        )
+        // Serialize to bytes (canonical)
+        let bytes = [UInt8](original)
+
+        // Parse back from bytes
+        let context = RFC_2046.Multipart.Context(boundary: original.boundary, subtype: original.subtype)
+        let parsed = try RFC_2046.Multipart(ascii: bytes, in: context)
 
         #expect(parsed.parts.count == 2)
     }
@@ -658,7 +648,6 @@ struct `Multipart - Round-trip parsing and rendering` {
 
 @Suite
 struct `Multipart - Hashable and Equatable` {
-
     @Test
     func `Same multipart messages are equal`() throws {
         let part = RFC_2046.BodyPart(contentType: .textPlainUTF8, text: "Hello")
@@ -736,18 +725,17 @@ struct `Multipart - Hashable and Equatable` {
 
 @Suite
 struct `Multipart - Codable` {
-
     @Test
     func `Round-trip encoding preserves multipart`() throws {
         let original = try RFC_2046.Multipart(
             subtype: .alternative,
             parts: [
-                RFC_2046.BodyPart(contentType: .textPlainUTF8, text: "Hello")
+                RFC_2046.BodyPart(contentType: .textPlainUTF8, text: "Hello"),
             ],
             boundary: "test-boundary",
             preamble: "Preamble",
             epilogue: "Epilogue",
-            additionalParameters: ["type": "text/html"]
+            additionalParameters: [.init("type"): "text/html"]
         )
 
         let encoder = JSONEncoder()
@@ -767,13 +755,12 @@ struct `Multipart - Codable` {
 
 @Suite
 struct `Multipart - Sendable conformance` {
-
     @Test
     func `Multipart can be sent across concurrency domains`() async throws {
         let multipart = try RFC_2046.Multipart(
             subtype: .mixed,
             parts: [
-                RFC_2046.BodyPart(contentType: .textPlainUTF8, text: "Hello")
+                RFC_2046.BodyPart(contentType: .textPlainUTF8, text: "Hello"),
             ],
             boundary: "test"
         )
@@ -790,7 +777,6 @@ struct `Multipart - Sendable conformance` {
 
 @Suite
 struct `Multipart - Edge cases` {
-
     @Test
     func `Boundary appearing in content is preserved`() throws {
         // Note: In real usage, this would be invalid, but we should handle it gracefully
@@ -805,14 +791,14 @@ struct `Multipart - Edge cases` {
             boundary: "boundary"
         )
 
-        let rendered = multipart.render()
+        let rendered = String(decoding: [UInt8](multipart), as: UTF8.self)
 
         #expect(rendered.contains("This contains --boundary inside"))
     }
 
     @Test
     func `Large multipart message with many parts`() throws {
-        let parts = (1...100).map { i in
+        let parts = (1 ... 100).map { i in
             RFC_2046.BodyPart(
                 contentType: .textPlainUTF8,
                 text: "Part \(i)"
@@ -827,7 +813,7 @@ struct `Multipart - Edge cases` {
 
         #expect(multipart.parts.count == 100)
 
-        let rendered = multipart.render()
+        let rendered = String(decoding: [UInt8](multipart), as: UTF8.self)
         #expect(rendered.contains("Part 1"))
         #expect(rendered.contains("Part 100"))
     }
@@ -845,7 +831,7 @@ struct `Multipart - Edge cases` {
             boundary: "boundary"
         )
 
-        let rendered = multipart.render()
+        let rendered = String(decoding: [UInt8](multipart), as: UTF8.self)
 
         #expect(rendered.contains("--boundary"))
         #expect(rendered.contains("--boundary--"))
@@ -864,7 +850,7 @@ struct `Multipart - Edge cases` {
             boundary: "boundary"
         )
 
-        let rendered = multipart.render()
+        let rendered = String(decoding: [UInt8](multipart), as: UTF8.self)
 
         #expect(rendered.contains("Hello 世界 🌍"))
     }
@@ -876,14 +862,14 @@ struct `Multipart - Edge cases` {
         let multipart = try RFC_2046.Multipart(
             subtype: .mixed,
             parts: [
-                RFC_2046.BodyPart(contentType: .textPlainUTF8, text: "Content")
+                RFC_2046.BodyPart(contentType: .textPlainUTF8, text: "Content"),
             ],
             boundary: "boundary",
             preamble: longText,
             epilogue: longText
         )
 
-        let rendered = multipart.render()
+        let rendered = String(decoding: [UInt8](multipart), as: UTF8.self)
 
         #expect(rendered.contains(longText))
     }

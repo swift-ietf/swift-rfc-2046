@@ -8,13 +8,13 @@ let package = Package(
         .macOS(.v15),
         .iOS(.v18),
         .tvOS(.v18),
-        .watchOS(.v11)
+        .watchOS(.v11),
     ],
     products: [
         .library(
             name: "RFC 2046",
             targets: ["RFC 2046"]
-        )
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/swift-standards/swift-rfc-2045", from: "0.1.0"),
@@ -35,7 +35,7 @@ let package = Package(
         .testTarget(
             name: "RFC 2046".tests,
             dependencies: ["RFC 2046"]
-        )
+        ),
     ],
     swiftLanguageModes: [.v6]
 )
@@ -50,6 +50,6 @@ for target in package.targets where ![.system, .binary, .plugin].contains(target
     target.swiftSettings = existing + [
         .enableUpcomingFeature("ExistentialAny"),
         .enableUpcomingFeature("InternalImportsByDefault"),
-        .enableUpcomingFeature("MemberImportVisibility")
+        .enableUpcomingFeature("MemberImportVisibility"),
     ]
 }

@@ -1,12 +1,11 @@
-import Testing
 import Foundation
 @testable import RFC_2046
+import Testing
 
 // MARK: - Boundary Validation
 
 @Suite
 struct `Boundary - Valid boundaries` {
-
     @Test(arguments: [
         "simple",
         "----=_Part_Custom",
@@ -18,17 +17,16 @@ struct `Boundary - Valid boundaries` {
         "AlphaNumeric123",
         "with spaces inside",
         "ends-with-dash-",
-        "ends_with_underscore_"
+        "ends_with_underscore_",
     ])
     func `Valid boundary strings are accepted`(value: String) throws {
         let boundary = try RFC_2046.Boundary(value)
-        #expect(boundary.value == value)
+        #expect(boundary.rawValue == value)
     }
 }
 
 @Suite
 struct `Boundary - Invalid boundaries` {
-
     @Test
     func `Empty string is rejected`() {
         #expect(throws: Error.self) {
@@ -61,31 +59,30 @@ struct `Boundary - Invalid boundaries` {
 
 @Suite
 struct `Boundary - Edge cases` {
-
     @Test
     func `Single character boundary is valid`() throws {
         let boundary = try RFC_2046.Boundary("x")
-        #expect(boundary.value == "x")
+        #expect(boundary.rawValue == "x")
     }
 
     @Test
     func `Exactly 70 characters is valid`() throws {
         let value = String(repeating: "x", count: 70)
         let boundary = try RFC_2046.Boundary(value)
-        #expect(boundary.value == value)
-        #expect(boundary.value.count == 70)
+        #expect(boundary.rawValue == value)
+        #expect(boundary.rawValue.count == 70)
     }
 
     @Test
     func `Boundary with leading space is valid`() throws {
         let boundary = try RFC_2046.Boundary(" test")
-        #expect(boundary.value == " test")
+        #expect(boundary.rawValue == " test")
     }
 
     @Test
     func `Boundary with space in middle is valid`() throws {
         let boundary = try RFC_2046.Boundary("test test")
-        #expect(boundary.value == "test test")
+        #expect(boundary.rawValue == "test test")
     }
 }
 
@@ -93,7 +90,6 @@ struct `Boundary - Edge cases` {
 
 @Suite
 struct `Boundary - Hashable and Equatable` {
-
     @Test
     func `Same boundaries are equal`() throws {
         let a = try RFC_2046.Boundary("test")
@@ -117,10 +113,10 @@ struct `Boundary - Hashable and Equatable` {
 
     @Test
     func `Boundaries work in Set`() throws {
-        let boundaries: Set = [
-            try RFC_2046.Boundary("test1"),
-            try RFC_2046.Boundary("test2"),
-            try RFC_2046.Boundary("test1")  // Duplicate
+        let boundaries: Set = try [
+            RFC_2046.Boundary("test1"),
+            RFC_2046.Boundary("test2"),
+            RFC_2046.Boundary("test1"), // Duplicate
         ]
         #expect(boundaries.count == 2)
     }
@@ -136,7 +132,6 @@ struct `Boundary - Hashable and Equatable` {
 
 @Suite
 struct `Boundary - CustomStringConvertible` {
-
     @Test
     func `Description returns the boundary value`() throws {
         let boundary = try RFC_2046.Boundary("test-boundary")
@@ -153,7 +148,6 @@ struct `Boundary - CustomStringConvertible` {
 
 @Suite
 struct `Boundary - Codable` {
-
     @Test
     func `Encoding produces valid JSON`() throws {
         let boundary = try RFC_2046.Boundary("test-boundary")
@@ -168,7 +162,7 @@ struct `Boundary - Codable` {
         let json = "\"test-boundary\""
         let decoder = JSONDecoder()
         let boundary = try decoder.decode(RFC_2046.Boundary.self, from: Data(json.utf8))
-        #expect(boundary.value == "test-boundary")
+        #expect(boundary.rawValue == "test-boundary")
     }
 
     @Test
@@ -181,7 +175,7 @@ struct `Boundary - Codable` {
         let decoded = try decoder.decode(RFC_2046.Boundary.self, from: data)
 
         #expect(decoded == original)
-        #expect(decoded.value == original.value)
+        #expect(decoded.rawValue == original.rawValue)
     }
 
     @Test
@@ -216,16 +210,14 @@ struct `Boundary - Codable` {
     }
 }
 
-
 @Suite
 struct `Boundary - Sendable conformance` {
-
     @Test
     func `Boundary can be sent across concurrency domains`() async throws {
         let boundary = try RFC_2046.Boundary("test")
 
         let result = await Task {
-            boundary.value
+            boundary.rawValue
         }.value
 
         #expect(result == "test")

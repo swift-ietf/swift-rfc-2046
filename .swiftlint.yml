@@ -3,5 +3,7 @@
 
 parent_config: https://raw.githubusercontent.com/swift-standards/swift-standards/main/.swiftlint.yml
 
-# Package-specific overrides (if needed)
-# Add any swift-rfc-2046 specific rules here
+# Package-specific overrides
+disabled_rules:
+  # Disabled to allow swiftformat's wrapMultilineStatementBraces style
+  - opening_brace

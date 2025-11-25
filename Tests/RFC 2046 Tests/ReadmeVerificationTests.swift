@@ -6,7 +6,6 @@ import Testing
 
 @Suite
 struct `README Verification` {
-
     @Test
     func `Example from README: Multipart/Alternative (Text + HTML)`() throws {
         // From README lines 50-62
@@ -25,13 +24,13 @@ struct `README Verification` {
         let multipart = try RFC_2046.Multipart(
             subtype: .alternative,
             parts: [textPart, htmlPart],
-            boundary: try .init("test-boundary-alternative")
+            boundary: .init("test-boundary-alternative")
         )
 
         let contentType = multipart.contentType.headerValue
         #expect(contentType.hasPrefix("multipart/alternative; boundary="))
 
-        let body = multipart.render()
+        let body = String(decoding: [UInt8](multipart), as: UTF8.self)
         #expect(body.contains("Hello, World!"))
         #expect(body.contains("<h1>Hello, World!</h1>"))
     }
@@ -57,7 +56,7 @@ struct `README Verification` {
             boundary: "my-custom-boundary"
         )
 
-        #expect(multipart.boundary.value == "my-custom-boundary")
+        #expect(multipart.boundary.rawValue == "my-custom-boundary")
         #expect(multipart.parts.count == 2)
     }
 
@@ -81,7 +80,7 @@ struct `README Verification` {
         let multipart = try RFC_2046.Multipart(
             subtype: .mixed,
             parts: [contentPart, attachmentPart],
-            boundary: try .init("test-boundary-mixed")
+            boundary: .init("test-boundary-mixed")
         )
 
         #expect(multipart.subtype == RFC_2046.Multipart.Subtype.mixed)
@@ -106,15 +105,15 @@ struct `README Verification` {
         let multipart = try RFC_2046.Multipart(
             subtype: .alternative,
             parts: [textPart, htmlPart],
-            boundary: try .init("test-boundary-render")
+            boundary: .init("test-boundary-render")
         )
 
         let contentType = multipart.contentType.headerValue
         #expect(contentType.hasPrefix("multipart/alternative; boundary="))
 
-        let body = multipart.render()
+        let body = String(decoding: [UInt8](multipart), as: UTF8.self)
         #expect(body.contains("Hello"))
         #expect(body.contains("<h1>Hello</h1>"))
-        #expect(body.contains("--"))  // Contains boundary markers
+        #expect(body.contains("--")) // Contains boundary markers
     }
 }

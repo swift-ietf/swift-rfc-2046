@@ -1,9 +1,9 @@
 import INCITS_4_1986
 public import RFC_2045
-public import RFC_4648
-public import RFC_5322
+import RFC_4648
+import RFC_5322
 
-extension RFC_2046 {
+public extension RFC_2046 {
     /// Multipart message structure
     ///
     /// Represents a MIME multipart message containing multiple body parts
@@ -27,13 +27,14 @@ extension RFC_2046 {
     ///     ]
     /// )
     ///
-    /// // Render as email body
-    /// let body = multipart.render()
+    /// // Serialize to bytes
+    /// let bytes = [UInt8](multipart)
+    /// let body = String(decoding: bytes, as: UTF8.self)
     /// let headers = [
     ///     "Content-Type": multipart.contentType.headerValue
     /// ]
     /// ```
-    public struct Multipart: Hashable, Sendable, Codable {
+    struct Multipart: Hashable, Sendable, Codable {
         /// Multipart subtype
         public let subtype: Subtype
 
@@ -60,6 +61,27 @@ extension RFC_2046 {
         /// String literals work via `ExpressibleByStringLiteral` conformance.
         public let additionalParameters: [RFC_2045.Parameter.Name: String]
 
+        /// Creates a multipart WITHOUT validation
+        ///
+        /// **Warning**: Bypasses RFC 2046 validation.
+        /// Only use for internal construction after validation.
+        init(
+            __unchecked _: Void,
+            subtype: Subtype,
+            parts: [BodyPart],
+            boundary: Boundary,
+            preamble: String?,
+            epilogue: String?,
+            additionalParameters: [RFC_2045.Parameter.Name: String]
+        ) {
+            self.subtype = subtype
+            self.parts = parts
+            self.boundary = boundary
+            self.preamble = preamble
+            self.epilogue = epilogue
+            self.additionalParameters = additionalParameters
+        }
+
         /// Creates a multipart message
         ///
         /// - Parameters:
@@ -78,24 +100,27 @@ extension RFC_2046 {
             preamble: String? = nil,
             epilogue: String? = nil,
             additionalParameters: [RFC_2045.Parameter.Name: String] = [:]
-        ) throws {
+        ) throws(Error) {
             guard !parts.isEmpty else {
                 throw RFC_2046.Multipart.Error.emptyParts
             }
 
-            self.subtype = subtype
-            self.parts = parts
-            self.boundary = boundary
-            self.preamble = preamble
-            self.epilogue = epilogue
-            self.additionalParameters = additionalParameters
+            self.init(
+                __unchecked: (),
+                subtype: subtype,
+                parts: parts,
+                boundary: boundary,
+                preamble: preamble,
+                epilogue: epilogue,
+                additionalParameters: additionalParameters
+            )
         }
     }
 }
 
 // MARK: - Convenience Initializers
 
-extension RFC_2046.Multipart {
+public extension RFC_2046.Multipart {
     /// Creates a multipart message with a string boundary
     ///
     /// Convenience initializer that validates and converts a string boundary.
@@ -109,7 +134,7 @@ extension RFC_2046.Multipart {
     ///   - additionalParameters: Additional Content-Type parameters
     ///
     /// - Throws: `RFC_2046.Multipart.Error` if validation fails
-    public init(
+    init(
         subtype: Subtype,
         parts: [RFC_2046.BodyPart],
         boundary: String,
@@ -120,7 +145,7 @@ extension RFC_2046.Multipart {
         try self.init(
             subtype: subtype,
             parts: parts,
-            boundary: try RFC_2046.Boundary(boundary),
+            boundary: RFC_2046.Boundary(boundary),
             preamble: preamble,
             epilogue: epilogue,
             additionalParameters: additionalParameters
@@ -130,205 +155,218 @@ extension RFC_2046.Multipart {
 
 // MARK: - Computed Properties
 
-extension RFC_2046.Multipart {
+public extension RFC_2046.Multipart {
     /// The Content-Type for this multipart message
     ///
     /// Includes boundary parameter and any additional parameters.
-    public var contentType: RFC_2045.ContentType {
-        var parameters: [RFC_2045.Parameter.Name: String] = [.boundary: boundary.value]
+    var contentType: RFC_2045.ContentType {
+        var parameters: [RFC_2045.Parameter.Name: String] = [.boundary: boundary.rawValue]
 
         // Merge additional parameters from RFC extensions
         parameters.merge(additionalParameters) { _, new in new }
 
-        return RFC_2045.ContentType(
-            type: "multipart",
-            subtype: subtype.rawValue,
-            parameters: parameters
-        )
+        // Build content type string for parsing
+        var headerValue = "multipart/\(subtype.rawValue)"
+        for (key, value) in parameters.sorted(by: { $0.key < $1.key }) {
+            headerValue += "; \(key.rawValue)=\(value)"
+        }
+
+        // swiftlint:disable:next force_try
+        return try! RFC_2045.ContentType(headerValue)
     }
 }
 
-// MARK: - Rendering
+// MARK: - Parsing Context
 
-extension RFC_2046.Multipart {
-    /// Renders the complete multipart body
+public extension RFC_2046.Multipart {
+    /// Parsing context for multipart messages
     ///
-    /// Returns the full MIME multipart body including boundaries,
-    /// preamble, parts, and epilogue.
+    /// Multipart data requires the boundary delimiter to identify parts.
+    /// The subtype defaults to `.mixed` if not specified.
     ///
-    /// Content is encoded according to each part's Content-Transfer-Encoding header:
-    /// - `base64`: Content is base64-encoded
-    /// - `quoted-printable`: Content is quoted-printable encoded
-    /// - Other encodings: Content is treated as-is (must be valid UTF-8 or 7-bit ASCII)
+    /// ## Category Theory
     ///
-    /// Per RFC 2046 Section 5.1.1, the output includes a trailing CRLF after the final boundary.
-    public func render() -> String {
-        var lines: [String] = []
+    /// Context-dependent parsing: `(Context, [UInt8]) → Multipart`
+    ///
+    /// The same raw bytes can represent different multipart structures
+    /// depending on the boundary delimiter in the context.
+    struct Context: Sendable {
+        /// The boundary delimiter separating body parts
+        public let boundary: RFC_2046.Boundary
 
-        // Preamble (optional)
-        if let preamble = preamble {
-            lines.append(preamble)
-            lines.append("")
+        /// The multipart subtype (default: .mixed)
+        public let subtype: Subtype
+
+        /// Creates a parsing context
+        ///
+        /// - Parameters:
+        ///   - boundary: The boundary delimiter for the multipart message
+        ///   - subtype: The multipart subtype (default: .mixed)
+        public init(boundary: RFC_2046.Boundary, subtype: Subtype = .mixed) {
+            self.boundary = boundary
+            self.subtype = subtype
         }
-
-        // Body parts
-        for part in parts {
-            lines.append("--\(boundary.value)")
-            lines.append(String(part.headers))
-            lines.append("")
-            lines.append(part.renderContent())
-        }
-
-        // Final boundary
-        lines.append("--\(boundary.value)--")
-
-        // Epilogue (optional)
-        if let epilogue = epilogue {
-            lines.append("")
-            lines.append(epilogue)
-        }
-
-        // RFC 2046 Section 5.1.1: There must be a CRLF at the end of the last line
-        return lines.joined(separator: "\r\n") + "\r\n"
     }
 }
 
-// MARK: - Parsing
+// MARK: - UInt8.ASCII.Serializing Conformance
 
-extension RFC_2046.Multipart {
-    /// Parses multipart data from a string
+extension RFC_2046.Multipart: UInt8.ASCII.Serializing {
+    /// Serialize to canonical ASCII byte representation
     ///
-    /// Extracts body parts separated by boundary delimiters.
+    /// Serialization is always context-free because the Multipart value
+    /// contains its own boundary delimiter.
+    public static let serialize: @Sendable (Self) -> [UInt8] = [UInt8].init
+
+    /// Parses multipart data from bytes with context (CANONICAL PRIMITIVE)
+    ///
+    /// This is the primitive parser that works at the byte level.
+    /// Multipart parsing requires context (boundary delimiter) to identify parts.
+    ///
+    /// ## Category Theory
+    ///
+    /// This is the fundamental parsing transformation:
+    /// - **Domain**: (Context, [UInt8]) where Context provides boundary
+    /// - **Codomain**: RFC_2046.Multipart (structured data)
+    ///
+    /// Context provides the boundary delimiter required to split parts.
+    /// Serialization is context-free since the Multipart contains its boundary.
+    ///
+    /// ## Example
+    ///
+    /// ```swift
+    /// let context = RFC_2046.Multipart.Context(
+    ///     boundary: try RFC_2046.Boundary("----=_Part_123"),
+    ///     subtype: .alternative
+    /// )
+    /// let multipart = try RFC_2046.Multipart(ascii: bytes, in: context)
+    /// ```
     ///
     /// - Parameters:
-    ///   - string: The multipart message body as a string
-    ///   - boundary: The validated boundary separating parts
-    ///   - subtype: The multipart subtype (default: .mixed)
-    /// - Returns: A Multipart instance containing the parsed parts
-    /// - Throws: `RFC_2046.Multipart.Error.invalidFormat` if parsing fails
-    public static func parse(
-        _ string: String,
-        boundary: RFC_2046.Boundary,
-        subtype: Subtype = .mixed
-    ) throws -> Self {
-        // Split on boundary delimiters
-        let delimiter = "--\(boundary.value)"
-        let finalDelimiter = "--\(boundary.value)--"
+    ///   - bytes: The multipart message body as ASCII bytes
+    ///   - context: Parsing context containing boundary and subtype
+    /// - Throws: `RFC_2046.Multipart.Error` if parsing fails
+    public init<Bytes: Collection>(ascii bytes: Bytes, in context: Context) throws(Error)
+    where Bytes.Element == UInt8 {
+        // Build boundary delimiters as bytes
+        let boundaryBytes = [UInt8](context.boundary)
+        let delimiterPrefix: [UInt8] = [.ascii.hyphen, .ascii.hyphen]
+        let delimiter = delimiterPrefix + boundaryBytes
+        let finalDelimiter = delimiter + delimiterPrefix
 
         var parts: [RFC_2046.BodyPart] = []
-        var preamble: String?
-        var epilogue: String?
+        var preambleBytes: [UInt8]?
+        var epilogueBytes: [UInt8]?
 
-        // Split by CRLF, CR, or LF (RFC 2046 requires CRLF, but be lenient)
-        var lines: [String] = []
-        var lineBytes: [UInt8] = []
+        // Split into lines (CRLF, CR, or LF for leniency)
+        var lines: [[UInt8]] = []
+        var currentLine: [UInt8] = []
 
-        var i = string.utf8.startIndex
-        while i < string.utf8.endIndex {
-            let byte = string.utf8[i]
+        var index = bytes.startIndex
+        while index < bytes.endIndex {
+            let byte = bytes[index]
 
-            if byte == UInt8.cr {
-                let next = string.utf8.index(after: i)
-                if next < string.utf8.endIndex && string.utf8[next] == UInt8.lf {
+            if byte == .ascii.cr {
+                let next = bytes.index(after: index)
+                if next < bytes.endIndex && bytes[next] == .ascii.lf {
                     // CRLF
-                    lines.append(String(decoding: lineBytes, as: UTF8.self))
-                    lineBytes = []
-                    i = string.utf8.index(after: next)
+                    lines.append(currentLine)
+                    currentLine = []
+                    index = bytes.index(after: next)
                 } else {
                     // Just CR
-                    lines.append(String(decoding: lineBytes, as: UTF8.self))
-                    lineBytes = []
-                    i = next
+                    lines.append(currentLine)
+                    currentLine = []
+                    index = next
                 }
-            } else if byte == UInt8.lf {
+            } else if byte == .ascii.lf {
                 // Just LF
-                lines.append(String(decoding: lineBytes, as: UTF8.self))
-                lineBytes = []
-                i = string.utf8.index(after: i)
+                lines.append(currentLine)
+                currentLine = []
+                index = bytes.index(after: index)
             } else {
-                lineBytes.append(byte)
-                i = string.utf8.index(after: i)
+                currentLine.append(byte)
+                index = bytes.index(after: index)
             }
         }
         // Add final line
-        lines.append(String(decoding: lineBytes, as: UTF8.self))
+        lines.append(currentLine)
 
-        var currentSection: [String] = []
+        var preambleLines: [[UInt8]] = []
         var inPreamble = true
         var inPart = false
-        var partHeaders: [RFC_5322.Header] = []
-        var partContent: [String] = []
+        var partHeaderLines: [[UInt8]] = []
+        var partContentLines: [[UInt8]] = []
+        var inHeaders = true
+
+        let crlf: [UInt8] = .ascii.crlf
 
         for line in lines {
             if line == delimiter {
                 // Start of new part
                 if inPart {
                     // Save previous part
-                    let content = partContent.joined(separator: "\r\n")
-                    parts.append(RFC_2046.BodyPart(headers: RFC_2046.BodyPart.Headers(parsing: partHeaders), text: content))
+                    let headerBytes = Array(partHeaderLines.joined(separator: crlf))
+                    let contentBytes = Array(partContentLines.joined(separator: crlf))
+                    let headers: RFC_2046.BodyPart.Headers
+                    do {
+                        headers = try RFC_2046.BodyPart.Headers(ascii: headerBytes)
+                    } catch {
+                        throw Error.invalidBodyPart("Headers: \(error)")
+                    }
+                    parts.append(RFC_2046.BodyPart(headers: headers, content: contentBytes))
                 }
                 if inPreamble {
-                    preamble = currentSection.isEmpty ? nil : currentSection.joined(separator: "\r\n")
+                    preambleBytes = preambleLines.isEmpty ? nil : Array(preambleLines.joined(separator: crlf))
                     inPreamble = false
                 }
                 inPart = true
-                partHeaders = []
-                partContent = []
-                currentSection = []
+                inHeaders = true
+                partHeaderLines = []
+                partContentLines = []
             } else if line == finalDelimiter {
                 // End of multipart
                 if inPart {
-                    let content = partContent.joined(separator: "\r\n")
-                    parts.append(RFC_2046.BodyPart(headers: RFC_2046.BodyPart.Headers(parsing: partHeaders), text: content))
+                    let headerBytes = Array(partHeaderLines.joined(separator: crlf))
+                    let contentBytes = Array(partContentLines.joined(separator: crlf))
+                    let headers: RFC_2046.BodyPart.Headers
+                    do {
+                        headers = try RFC_2046.BodyPart.Headers(ascii: headerBytes)
+                    } catch {
+                        throw Error.invalidBodyPart("Headers: \(error)")
+                    }
+                    parts.append(RFC_2046.BodyPart(headers: headers, content: contentBytes))
                 }
                 inPart = false
             } else if inPart {
-                // Inside a part
-                if line.isEmpty && partHeaders.isEmpty {
-                    // Empty line after headers starts content
-                    continue
-                } else if line.isEmpty {
-                    // Already in content - this is content
-                    partContent.append(line)
-                } else if partHeaders.isEmpty || line.contains(":") {
-                    // Parse header
-                    if let colonIndex = line.firstIndex(of: ":") {
-                        let headerName = line[..<colonIndex].trimming(Set([" ", "\t"]))
-                        let headerValue = line[line.index(after: colonIndex)...].trimming(Set([" ", "\t"]))
-                        partHeaders.append(
-                            RFC_5322.Header(
-                                name: RFC_5322.Header.Name(headerName),
-                                value: headerValue
-                            )
-                        )
-                    } else if !partHeaders.isEmpty {
-                        // Already have headers, so this is content
-                        partContent.append(line)
+                if inHeaders {
+                    if line.isEmpty {
+                        // Empty line ends headers, starts content
+                        inHeaders = false
+                    } else {
+                        partHeaderLines.append(line)
                     }
                 } else {
-                    // Content line
-                    partContent.append(line)
+                    partContentLines.append(line)
                 }
             } else if inPreamble {
-                currentSection.append(line)
+                preambleLines.append(line)
             } else {
                 // Epilogue
-                if epilogue == nil {
-                    epilogue = line
+                if epilogueBytes == nil {
+                    epilogueBytes = line
                 } else {
-                    epilogue! += "\r\n" + line
+                    epilogueBytes! += crlf + line
                 }
             }
         }
 
-        return try Self(
-            subtype: subtype,
+        try self.init(
+            subtype: context.subtype,
             parts: parts,
-            boundary: boundary,
-            preamble: preamble,
-            epilogue: epilogue
+            boundary: context.boundary,
+            preamble: preambleBytes.map { String(decoding: $0, as: UTF8.self) },
+            epilogue: epilogueBytes.map { String(decoding: $0, as: UTF8.self) }
         )
     }
 }
-
-
