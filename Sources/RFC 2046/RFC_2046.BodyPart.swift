@@ -43,9 +43,9 @@ public extension RFC_2046 {
 }
 
 
-// MARK: - UInt8.ASCII.Serializing
+// MARK: - UInt8.ASCII.Serializable
 
-extension RFC_2046.BodyPart: UInt8.ASCII.Serializing {
+extension RFC_2046.BodyPart: UInt8.ASCII.Serializable {
     /// Serialize to canonical byte representation
     public static let serialize: @Sendable (Self) -> [UInt8] = { [UInt8]($0) }
 
@@ -260,6 +260,40 @@ public extension [UInt8] {
 //        self.init(headers: headers, content: Content(text))
 //    }
 //}
+
+// MARK: - Convenience Initializers
+
+public extension RFC_2046.BodyPart {
+    /// Creates a text body part with the specified content type
+    ///
+    /// Convenience initializer for text-based body parts.
+    /// Automatically sets `Content-Transfer-Encoding: 8bit` for UTF-8 text.
+    ///
+    /// ## Example
+    ///
+    /// ```swift
+    /// let htmlPart = try RFC_2046.BodyPart(
+    ///     contentType: .textHTMLUTF8,
+    ///     text: "<h1>Hello</h1>"
+    /// )
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - contentType: Content type for the text (e.g., `.textPlainUTF8`, `.textHTMLUTF8`)
+    ///   - text: The text content
+    /// - Throws: If header or content creation fails
+    init(contentType: RFC_2045.ContentType, text: some StringProtocol) throws {
+        var headers = try Headers(ascii: [])
+        headers.contentType = contentType
+        // UTF-8 text may contain bytes > 127, use 8bit encoding
+        headers.contentTransferEncoding = .eightBit
+
+        self.init(
+            headers: headers,
+            content: try Content(text)
+        )
+    }
+}
 
 // MARK: - Computed Properties
 

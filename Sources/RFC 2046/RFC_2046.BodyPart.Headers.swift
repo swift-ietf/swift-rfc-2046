@@ -73,9 +73,9 @@ public extension RFC_2046.BodyPart {
     }
 }
 
-// MARK: - UInt8.ASCII.Serializing
+// MARK: - UInt8.ASCII.Serializable
 
-extension RFC_2046.BodyPart.Headers: UInt8.ASCII.Serializing {
+extension RFC_2046.BodyPart.Headers: UInt8.ASCII.Serializable {
     public static let serialize: @Sendable (Self) -> [UInt8] = [UInt8].init
 
     /// Parses headers from canonical byte representation

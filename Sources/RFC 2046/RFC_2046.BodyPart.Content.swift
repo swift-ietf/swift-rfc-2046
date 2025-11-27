@@ -23,9 +23,9 @@ public extension RFC_2046.BodyPart {
 //}
 
 
-// MARK: - UInt8.ASCII.Serializing
+// MARK: - UInt8.ASCII.Serializable
 
-extension RFC_2046.BodyPart.Content: UInt8.ASCII.Serializing {
+extension RFC_2046.BodyPart.Content: UInt8.ASCII.Serializable {
     public static let serialize: @Sendable (Self) -> [UInt8] = [UInt8].init
 
     public init<Bytes: Collection>(ascii bytes: Bytes, in context: Void = ()) throws
