@@ -1,9 +1,10 @@
 import Foundation
 import RFC_2045
-@testable import RFC_2046
 import RFC_2183
 import RFC_5322
 import Testing
+
+@testable import RFC_2046
 
 // MARK: - BodyPart Core Initialization
 
@@ -14,7 +15,7 @@ struct `BodyPart - Core initialization` {
         let headers = RFC_2046.BodyPart.Headers(
             contentType: .textPlainUTF8
         )
-        let content = RFC_2046.BodyPart.Content([72, 101, 108, 108, 111]) // "Hello"
+        let content = RFC_2046.BodyPart.Content([72, 101, 108, 108, 111])  // "Hello"
 
         let part = RFC_2046.BodyPart(headers: headers, content: content)
 

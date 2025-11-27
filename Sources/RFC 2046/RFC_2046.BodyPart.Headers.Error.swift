@@ -14,9 +14,9 @@
 // RFC_2046.BodyPart.Headers.Error.swift
 // swift-rfc-2046
 
-public extension RFC_2046.BodyPart.Headers {
+extension RFC_2046.BodyPart.Headers {
     /// Errors for body part header parsing
-    enum Error: Swift.Error, Sendable, Equatable {
+    public enum Error: Swift.Error, Sendable, Equatable {
         /// Header line is malformed (missing colon separator)
         case invalidHeaderLine(_ line: String)
 
@@ -30,7 +30,7 @@ public extension RFC_2046.BodyPart.Headers {
 extension RFC_2046.BodyPart.Headers.Error: CustomStringConvertible {
     public var description: String {
         switch self {
-        case let .invalidHeaderLine(line):
+        case .invalidHeaderLine(let line):
             return "Invalid header line (missing ':'): '\(line)'"
         case .emptyHeaderName:
             return "Header name cannot be empty"

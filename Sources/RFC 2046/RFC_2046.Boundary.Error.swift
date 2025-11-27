@@ -14,7 +14,7 @@
 // RFC_2046.Boundary.Error.swift
 // swift-rfc-2046
 
-public extension RFC_2046.Boundary {
+extension RFC_2046.Boundary {
     /// Errors that can occur during boundary validation
     ///
     /// ## RFC 2046 Section 5.1.1
@@ -23,7 +23,7 @@ public extension RFC_2046.Boundary {
     /// - Length: 1-70 characters (not counting leading hyphens)
     /// - Cannot end with whitespace
     /// - Limited to robust character set for mail gateway transport
-    enum Error: Swift.Error, Sendable, Equatable {
+    public enum Error: Swift.Error, Sendable, Equatable {
         /// Boundary is empty
         case empty
 
@@ -45,11 +45,13 @@ extension RFC_2046.Boundary.Error: CustomStringConvertible {
         switch self {
         case .empty:
             return "Boundary cannot be empty"
-        case let .tooLong(length):
-            return "Boundary too long (\(length) characters, max \(RFC_2046.Boundary.Limits.maxLength))"
-        case let .invalidCharacter(value, byte, reason):
-            return "Invalid byte 0x\(String(byte, radix: 16, uppercase: true)) in boundary '\(value)': \(reason)"
-        case let .endsWithWhitespace(value):
+        case .tooLong(let length):
+            return
+                "Boundary too long (\(length) characters, max \(RFC_2046.Boundary.Limits.maxLength))"
+        case .invalidCharacter(let value, let byte, let reason):
+            return
+                "Invalid byte 0x\(String(byte, radix: 16, uppercase: true)) in boundary '\(value)': \(reason)"
+        case .endsWithWhitespace(let value):
             return "Boundary '\(value)' cannot end with whitespace"
         }
     }

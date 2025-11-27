@@ -1,5 +1,6 @@
-@testable import RFC_2046
 import Testing
+
+@testable import RFC_2046
 
 // MARK: - Boundary.Error Tests
 
@@ -220,7 +221,7 @@ struct `Error - Integration` {
             _ = try RFC_2046.Multipart(
                 subtype: .mixed,
                 parts: [part],
-                boundary: .init("") // Invalid boundary
+                boundary: .init("")  // Invalid boundary
             )
         }
     }

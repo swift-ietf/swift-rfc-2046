@@ -3,7 +3,7 @@ public import RFC_2045
 import RFC_4648
 import RFC_5322
 
-public extension RFC_2046 {
+extension RFC_2046 {
     /// Multipart message structure
     ///
     /// Represents a MIME multipart message containing multiple body parts
@@ -34,7 +34,7 @@ public extension RFC_2046 {
     ///     "Content-Type": multipart.contentType.headerValue
     /// ]
     /// ```
-    struct Multipart: Hashable, Sendable, Codable {
+    public struct Multipart: Hashable, Sendable, Codable {
         /// Multipart subtype
         public let subtype: Subtype
 
@@ -65,7 +65,7 @@ public extension RFC_2046 {
         ///
         /// **Warning**: Bypasses RFC 2046 validation.
         /// Only use for internal construction after validation.
-        init(
+        public init(
             __unchecked _: Void,
             subtype: Subtype,
             parts: [BodyPart],
@@ -120,7 +120,7 @@ public extension RFC_2046 {
 //
 //// MARK: - Convenience Initializers
 //
-//public extension RFC_2046.Multipart {
+// extension RFC_2046.Multipart {
 //    /// Creates a multipart message with a string boundary
 //    ///
 //    /// Convenience initializer that validates and converts a string boundary.
@@ -134,7 +134,7 @@ public extension RFC_2046 {
 //    ///   - additionalParameters: Additional Content-Type parameters
 //    ///
 //    /// - Throws: `RFC_2046.Multipart.Error` if validation fails
-//    init(
+//    public init(
 //        subtype: Subtype,
 //        parts: [RFC_2046.BodyPart],
 //        boundary: String,
@@ -151,15 +151,15 @@ public extension RFC_2046 {
 //            additionalParameters: additionalParameters
 //        )
 //    }
-//}
+// }
 
 // MARK: - Computed Properties
 
-public extension RFC_2046.Multipart {
+extension RFC_2046.Multipart {
     /// The Content-Type for this multipart message
     ///
     /// Includes boundary parameter and any additional parameters.
-    var contentType: RFC_2045.ContentType {
+    public var contentType: RFC_2045.ContentType {
         var parameters: [RFC_2045.Parameter.Name: String] = [.boundary: boundary.rawValue]
 
         // Merge additional parameters from RFC extensions
@@ -178,7 +178,7 @@ public extension RFC_2046.Multipart {
 
 // MARK: - Parsing Context
 
-public extension RFC_2046.Multipart {
+extension RFC_2046.Multipart {
     /// Parsing context for multipart messages
     ///
     /// Multipart data requires the boundary delimiter to identify parts.
@@ -190,7 +190,7 @@ public extension RFC_2046.Multipart {
     ///
     /// The same raw bytes can represent different multipart structures
     /// depending on the boundary delimiter in the context.
-    struct Context: Sendable {
+    public struct Context: Sendable {
         /// The boundary delimiter separating body parts
         public let boundary: RFC_2046.Boundary
 
@@ -295,10 +295,16 @@ extension RFC_2046.Multipart: UInt8.ASCII.Serializable {
                     } catch {
                         throw Error.invalidBodyPart("Headers: \(error)")
                     }
-                    parts.append(RFC_2046.BodyPart(headers: headers, content: RFC_2046.BodyPart.Content(contentBytes)))
+                    parts.append(
+                        RFC_2046.BodyPart(
+                            headers: headers,
+                            content: RFC_2046.BodyPart.Content(contentBytes)
+                        )
+                    )
                 }
                 if inPreamble {
-                    preambleBytes = preambleLines.isEmpty ? nil : preambleLines.joined(separator: crlf)
+                    preambleBytes =
+                        preambleLines.isEmpty ? nil : preambleLines.joined(separator: crlf)
                     inPreamble = false
                 }
                 inPart = true
@@ -316,7 +322,12 @@ extension RFC_2046.Multipart: UInt8.ASCII.Serializable {
                     } catch {
                         throw Error.invalidBodyPart("Headers: \(error)")
                     }
-                    parts.append(RFC_2046.BodyPart(headers: headers, content: RFC_2046.BodyPart.Content(contentBytes)))
+                    parts.append(
+                        RFC_2046.BodyPart(
+                            headers: headers,
+                            content: RFC_2046.BodyPart.Content(contentBytes)
+                        )
+                    )
                 }
                 inPart = false
             } else if inPart {
@@ -353,7 +364,7 @@ extension RFC_2046.Multipart: UInt8.ASCII.Serializable {
     }
 }
 
-public extension [UInt8] {
+extension [UInt8] {
     /// Creates ASCII bytes from RFC 2046 Multipart message
     ///
     /// Serializes the complete multipart body including boundaries,
@@ -391,7 +402,7 @@ public extension [UInt8] {
     /// ```
     ///
     /// - Parameter multipart: The multipart message to serialize
-    init(_ multipart: RFC_2046.Multipart) {
+    public init(_ multipart: RFC_2046.Multipart) {
         self = []
 
         // Estimate capacity
@@ -399,7 +410,7 @@ public extension [UInt8] {
         estimatedSize += (multipart.preamble?.utf8.count ?? 0) + 4
         estimatedSize += multipart.parts.count * (multipart.boundary.rawValue.count + 10)
         for part in multipart.parts {
-            estimatedSize += [UInt8](part.content).count + 200 // headers estimate
+            estimatedSize += [UInt8](part.content).count + 200  // headers estimate
         }
         estimatedSize += (multipart.epilogue?.utf8.count ?? 0) + 4
         self.reserveCapacity(estimatedSize)
@@ -451,7 +462,7 @@ public extension [UInt8] {
         // Final boundary
         self.append(contentsOf: boundaryPrefix)
         self.append(contentsOf: boundaryBytes)
-        self.append(contentsOf: boundaryPrefix) // "--" suffix for final
+        self.append(contentsOf: boundaryPrefix)  // "--" suffix for final
         self.append(contentsOf: crlf)
 
         // Epilogue (optional)

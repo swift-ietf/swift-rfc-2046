@@ -1,9 +1,10 @@
 import Foundation
 import RFC_2045
-@testable import RFC_2046
 import RFC_2183
 import RFC_5322
 import Testing
+
+@testable import RFC_2046
 
 // MARK: - Headers Initialization
 
@@ -30,7 +31,7 @@ struct `BodyPart.Headers - Initialization` {
         #expect(headers.contentDisposition == .inline())
         #expect(headers.contentType == .textPlainUTF8)
         #expect(headers.contentTransferEncoding == .sevenBit)
-//        #expect(try headers[.init("X-Custom")] == "value")
+        //        #expect(try headers[.init("X-Custom")] == "value")
     }
 
     @Test
@@ -102,7 +103,8 @@ struct `BodyPart.Headers - Parsing from bytes` {
 
     @Test
     func `Parse all standard headers with CRLF`() throws {
-        let headerString = "Content-Type: text/plain; charset=UTF-8\r\nContent-Disposition: inline\r\nContent-Transfer-Encoding: 7bit"
+        let headerString =
+            "Content-Type: text/plain; charset=UTF-8\r\nContent-Disposition: inline\r\nContent-Transfer-Encoding: 7bit"
         let bytes = Array(headerString.utf8)
         let headers = try RFC_2046.BodyPart.Headers(ascii: bytes)
 
@@ -128,7 +130,7 @@ struct `BodyPart.Headers - Parsing from bytes` {
         let headers = try RFC_2046.BodyPart.Headers(ascii: bytes)
 
         #expect(headers.contentType != nil)
-//        #expect(try headers[.init("X-Custom")] == "value")
+        //        #expect(try headers[.init("X-Custom")] == "value")
     }
 
     @Test
@@ -165,8 +167,8 @@ struct `BodyPart.Headers - Parsing from bytes` {
 
 // MARK: - Headers from RFC_5322.Header Array
 
-//@Suite
-//struct `BodyPart.Headers - Initialization from header array` {
+// @Suite
+// struct `BodyPart.Headers - Initialization from header array` {
 //    @Test
 //    func `Empty array creates empty headers`() throws {
 //        let headers = try RFC_2046.BodyPart.Headers([])
@@ -231,7 +233,7 @@ struct `BodyPart.Headers - Parsing from bytes` {
 //        #expect(headers.contentType != nil)
 ////        #expect(try headers[.init("X-Custom")] == "value")
 //    }
-//}
+// }
 
 // MARK: - Headers Serialization
 
@@ -359,7 +361,7 @@ struct `BodyPart.Headers - Round-trip serialization` {
     func `Round-trip preserves custom headers`() throws {
         let original = try RFC_2046.BodyPart.Headers(
             custom: [
-                RFC_5322.Header(name: .init("X-Custom"), value: .init("value")),
+                RFC_5322.Header(name: .init("X-Custom"), value: .init("value"))
             ]
         )
 
@@ -384,7 +386,7 @@ struct `BodyPart.Headers - Round-trip serialization` {
         #expect(parsed.contentDisposition != nil)
         #expect(parsed.contentType != nil)
         #expect(parsed.contentTransferEncoding == .quotedPrintable)
-//        #expect(try parsed[.init("X-Custom")] == "value")
+        //        #expect(try parsed[.init("X-Custom")] == "value")
     }
 }
 
@@ -459,8 +461,8 @@ struct `BodyPart.Headers - Subscript access` {
 
 // MARK: - Convenience Constructors
 //
-//@Suite
-//struct `BodyPart.Headers - Form data text field` {
+// @Suite
+// struct `BodyPart.Headers - Form data text field` {
 //    @Test
 //    func `Form data text field creates correct headers`() {
 //        let headers = RFC_2046.BodyPart.Headers.formDataTextField(name: "username")
@@ -476,10 +478,10 @@ struct `BodyPart.Headers - Subscript access` {
 //
 //        #expect(headers.contentDisposition != nil)
 //    }
-//}
+// }
 
-//@Suite
-//struct `BodyPart.Headers - Form data file` {
+// @Suite
+// struct `BodyPart.Headers - Form data file` {
 //    @Test
 //    func `Form data file creates correct headers`() throws {
 //        let headers = try RFC_2046.BodyPart.Headers.formDataFile(
@@ -524,7 +526,7 @@ struct `BodyPart.Headers - Subscript access` {
 //
 //        #expect(headers.contentDisposition != nil)
 //    }
-//}
+// }
 
 // MARK: - Headers Protocol Conformance
 
@@ -546,8 +548,12 @@ struct `BodyPart.Headers - Hashable and Equatable` {
 
     @Test
     func `Headers with different custom values are not equal`() throws {
-        let a = try RFC_2046.BodyPart.Headers(custom: [RFC_5322.Header(name: .init("X-A"), value: .init("1"))])
-        let b = try RFC_2046.BodyPart.Headers(custom: [RFC_5322.Header(name: .init("X-A"), value: .init("2"))])
+        let a = try RFC_2046.BodyPart.Headers(custom: [
+            RFC_5322.Header(name: .init("X-A"), value: .init("1"))
+        ])
+        let b = try RFC_2046.BodyPart.Headers(custom: [
+            RFC_5322.Header(name: .init("X-A"), value: .init("2"))
+        ])
         #expect(a != b)
     }
 

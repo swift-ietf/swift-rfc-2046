@@ -16,7 +16,7 @@
 
 import INCITS_4_1986
 
-public extension RFC_2046.Multipart {
+extension RFC_2046.Multipart {
     /// Multipart subtype per RFC 2046 Section 5.1
     ///
     /// Represents the subtype portion of a multipart Content-Type.
@@ -47,7 +47,7 @@ public extension RFC_2046.Multipart {
     /// - RFC 2387: multipart/related (compound documents)
     /// - RFC 7578: multipart/form-data (HTML forms)
     /// - RFC 2046 Section 5.2.3: multipart/byteranges (HTTP range requests)
-    struct Subtype: Sendable, Codable {
+    public struct Subtype: Sendable, Codable {
         public let rawValue: String
 
         /// Creates a subtype WITHOUT validation
@@ -89,8 +89,7 @@ extension RFC_2046.Multipart.Subtype: UInt8.ASCII.Serializable {
     /// - Parameter bytes: The ASCII byte representation
     /// - Throws: `RFC_2046.Multipart.Subtype.Error` if empty
     public init<Bytes: Collection>(ascii bytes: Bytes, in context: Void) throws(Error)
-        where Bytes.Element == UInt8
-    {
+    where Bytes.Element == UInt8 {
         guard !bytes.isEmpty else {
             throw Error.empty
         }
@@ -101,7 +100,7 @@ extension RFC_2046.Multipart.Subtype: UInt8.ASCII.Serializable {
     }
 }
 
-public extension [UInt8] {
+extension [UInt8] {
     /// Creates ASCII bytes from RFC 2046 Multipart Subtype
     ///
     /// ## Category Theory
@@ -118,7 +117,7 @@ public extension [UInt8] {
     /// ```
     ///
     /// - Parameter subtype: The subtype to serialize
-    init(_ subtype: RFC_2046.Multipart.Subtype) {
+    public init(_ subtype: RFC_2046.Multipart.Subtype) {
         self = Array(subtype.rawValue.utf8)
     }
 }
@@ -127,7 +126,6 @@ public extension [UInt8] {
 
 extension RFC_2046.Multipart.Subtype: UInt8.ASCII.RawRepresentable {}
 extension RFC_2046.Multipart.Subtype: CustomStringConvertible {}
-
 
 // MARK: - Hashable
 
@@ -147,7 +145,7 @@ extension RFC_2046.Multipart.Subtype: Hashable {
 
 // MARK: - RFC 2046 Standard Subtypes
 
-public extension RFC_2046.Multipart.Subtype {
+extension RFC_2046.Multipart.Subtype {
     /// Independent body parts in specified order
     ///
     /// Used when body parts are independent and should be
@@ -155,7 +153,7 @@ public extension RFC_2046.Multipart.Subtype {
     /// for unrecognized subtypes.
     ///
     /// **RFC 2046 Section 5.1.3**
-    static let mixed = Self(__unchecked: (), rawValue: "mixed")
+    public static let mixed = Self(__unchecked: (), rawValue: "mixed")
 
     /// Alternative representations of same content
     ///
@@ -164,7 +162,7 @@ public extension RFC_2046.Multipart.Subtype {
     /// Mail clients should display the last one they understand.
     ///
     /// **RFC 2046 Section 5.1.4**
-    static let alternative = Self(__unchecked: (), rawValue: "alternative")
+    public static let alternative = Self(__unchecked: (), rawValue: "alternative")
 
     /// Collection of RFC 822 messages
     ///
@@ -173,7 +171,7 @@ public extension RFC_2046.Multipart.Subtype {
     /// (unlike other subtypes which default to `text/plain`).
     ///
     /// **RFC 2046 Section 5.1.5**
-    static let digest = Self(__unchecked: (), rawValue: "digest")
+    public static let digest = Self(__unchecked: (), rawValue: "digest")
 
     /// Body parts to be viewed simultaneously
     ///
@@ -181,19 +179,19 @@ public extension RFC_2046.Multipart.Subtype {
     /// (e.g., for compound documents with synchronized media).
     ///
     /// **RFC 2046 Section 5.1.6**
-    static let parallel = Self(__unchecked: (), rawValue: "parallel")
+    public static let parallel = Self(__unchecked: (), rawValue: "parallel")
 }
 
 // MARK: - RFC Extensions
 
-public extension RFC_2046.Multipart.Subtype {
+extension RFC_2046.Multipart.Subtype {
     /// Compound object with root and related parts
     ///
     /// For documents with embedded objects (e.g., HTML with images).
     /// Requires `type` and `start` parameters to identify root part.
     ///
     /// **RFC 2387**
-    static let related = Self(__unchecked: (), rawValue: "related")
+    public static let related = Self(__unchecked: (), rawValue: "related")
 
     /// HTML form data submission
     ///
@@ -202,7 +200,7 @@ public extension RFC_2046.Multipart.Subtype {
     /// in Content-Disposition header.
     ///
     /// **RFC 7578**
-    static let formData = Self(__unchecked: (), rawValue: "form-data")
+    public static let formData = Self(__unchecked: (), rawValue: "form-data")
 
     /// HTTP byte range responses
     ///
@@ -210,21 +208,21 @@ public extension RFC_2046.Multipart.Subtype {
     /// multiple ranges are requested.
     ///
     /// **RFC 2046 Section 5.2.3 / RFC 7233**
-    static let byteranges = Self(__unchecked: (), rawValue: "byteranges")
+    public static let byteranges = Self(__unchecked: (), rawValue: "byteranges")
 
     /// Signed message (S/MIME)
     ///
     /// Contains original message and detached signature.
     ///
     /// **RFC 5751**
-    static let signed = Self(__unchecked: (), rawValue: "signed")
+    public static let signed = Self(__unchecked: (), rawValue: "signed")
 
     /// Encrypted message (S/MIME)
     ///
     /// Contains encryption control information and encrypted content.
     ///
     /// **RFC 5751**
-    static let encrypted = Self(__unchecked: (), rawValue: "encrypted")
+    public static let encrypted = Self(__unchecked: (), rawValue: "encrypted")
 
     /// Report message (delivery status, disposition)
     ///
@@ -232,11 +230,5 @@ public extension RFC_2046.Multipart.Subtype {
     /// message disposition notifications.
     ///
     /// **RFC 6522**
-    static let report = Self(__unchecked: (), rawValue: "report")
+    public static let report = Self(__unchecked: (), rawValue: "report")
 }
-
-// MARK: - ExpressibleByStringLiteral
-
-// MARK: - CustomStringConvertible
-
-

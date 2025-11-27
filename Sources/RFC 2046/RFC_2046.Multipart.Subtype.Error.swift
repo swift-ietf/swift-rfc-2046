@@ -14,9 +14,9 @@
 // RFC_2046.Multipart.Subtype.Error.swift
 // swift-rfc-2046
 
-public extension RFC_2046.Multipart.Subtype {
+extension RFC_2046.Multipart.Subtype {
     /// Errors for multipart subtype parsing
-    enum Error: Swift.Error, Sendable, Equatable {
+    public enum Error: Swift.Error, Sendable, Equatable {
         /// Subtype cannot be empty
         case empty
     }

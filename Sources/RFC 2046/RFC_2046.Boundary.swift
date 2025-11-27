@@ -16,7 +16,7 @@
 
 import INCITS_4_1986
 
-public extension RFC_2046 {
+extension RFC_2046 {
     /// A validated multipart boundary delimiter per RFC 2046 Section 5.1.1
     ///
     /// Boundaries separate parts in multipart MIME bodies. This type ensures
@@ -45,7 +45,7 @@ public extension RFC_2046 {
     /// >
     /// > The boundary parameter, which consists of 1 to 70 characters from a
     /// > set of characters known to be very robust through mail gateways.
-    struct Boundary: Sendable, Codable {
+    public struct Boundary: Sendable, Codable {
         /// The validated boundary string
         public let rawValue: String
 
@@ -55,7 +55,7 @@ public extension RFC_2046 {
         /// Only use with compile-time constants or pre-validated values.
         ///
         /// - Parameter rawValue: Pre-validated boundary string
-        init(
+        public init(
             __unchecked _: Void,
             rawValue: String
         ) {
@@ -66,9 +66,9 @@ public extension RFC_2046 {
 
 // MARK: - Limits
 
-package extension RFC_2046.Boundary {
+extension RFC_2046.Boundary {
     /// RFC 2046 boundary length limits
-    enum Limits {
+    package enum Limits {
         /// Maximum boundary length (70 characters per RFC 2046 Section 5.1.1)
         static let maxLength = 70
     }
@@ -87,19 +87,19 @@ extension RFC_2046.Boundary {
     @inline(__always)
     static func isValidBoundaryCharacter(_ byte: UInt8) -> Bool {
         byte.ascii.isAlphanumeric
-            || byte == UInt8.ascii.apostrophe // '
-            || byte == UInt8.ascii.leftParenthesis // (
-            || byte == UInt8.ascii.rightParenthesis // )
-            || byte == UInt8.ascii.plusSign // +
-            || byte == UInt8.ascii.underline // _
-            || byte == UInt8.ascii.comma // ,
-            || byte == UInt8.ascii.hyphen // -
-            || byte == UInt8.ascii.period // .
-            || byte == UInt8.ascii.solidus // /
-            || byte == UInt8.ascii.colon // :
-            || byte == UInt8.ascii.equalsSign // =
-            || byte == UInt8.ascii.questionMark // ?
-            || byte == UInt8.ascii.space // space (allowed except at end)
+            || byte == UInt8.ascii.apostrophe  // '
+            || byte == UInt8.ascii.leftParenthesis  // (
+            || byte == UInt8.ascii.rightParenthesis  // )
+            || byte == UInt8.ascii.plusSign  // +
+            || byte == UInt8.ascii.underline  // _
+            || byte == UInt8.ascii.comma  // ,
+            || byte == UInt8.ascii.hyphen  // -
+            || byte == UInt8.ascii.period  // .
+            || byte == UInt8.ascii.solidus  // /
+            || byte == UInt8.ascii.colon  // :
+            || byte == UInt8.ascii.equalsSign  // =
+            || byte == UInt8.ascii.questionMark  // ?
+            || byte == UInt8.ascii.space  // space (allowed except at end)
     }
 }
 
@@ -141,8 +141,7 @@ extension RFC_2046.Boundary: UInt8.ASCII.Serializable {
     /// - Parameter bytes: The ASCII byte representation
     /// - Throws: `RFC_2046.Boundary.Error` if validation fails
     public init<Bytes: Collection>(ascii bytes: Bytes, in context: Void) throws(Error)
-        where Bytes.Element == UInt8
-    {
+    where Bytes.Element == UInt8 {
         guard !bytes.isEmpty else {
             throw Error.empty
         }
@@ -176,7 +175,7 @@ extension RFC_2046.Boundary: UInt8.ASCII.Serializable {
     }
 }
 
-public extension [UInt8] {
+extension [UInt8] {
     /// Creates ASCII bytes from RFC 2046 Boundary
     ///
     /// ## Category Theory
@@ -198,7 +197,7 @@ public extension [UInt8] {
     /// ```
     ///
     /// - Parameter boundary: The boundary to serialize
-    init(_ boundary: RFC_2046.Boundary) {
+    public init(_ boundary: RFC_2046.Boundary) {
         self = Array(boundary.rawValue.utf8)
     }
 }

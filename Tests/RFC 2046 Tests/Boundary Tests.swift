@@ -1,6 +1,7 @@
 import Foundation
-@testable import RFC_2046
 import Testing
+
+@testable import RFC_2046
 
 // MARK: - Boundary Validation
 
@@ -116,7 +117,7 @@ struct `Boundary - Hashable and Equatable` {
         let boundaries: Set = try [
             RFC_2046.Boundary("test1"),
             RFC_2046.Boundary("test2"),
-            RFC_2046.Boundary("test1"), // Duplicate
+            RFC_2046.Boundary("test1"),  // Duplicate
         ]
         #expect(boundaries.count == 2)
     }
@@ -180,7 +181,7 @@ struct `Boundary - Codable` {
 
     @Test
     func `Decoding invalid boundary throws`() throws {
-        let json = "\"\"" // Empty string
+        let json = "\"\""  // Empty string
         let decoder = JSONDecoder()
 
         #expect(throws: Error.self) {

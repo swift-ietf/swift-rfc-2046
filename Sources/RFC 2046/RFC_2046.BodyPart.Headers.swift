@@ -19,7 +19,7 @@ public import RFC_2045
 public import RFC_2183
 public import RFC_5322
 
-public extension RFC_2046.BodyPart {
+extension RFC_2046.BodyPart {
     /// Type-safe headers for multipart body parts
     ///
     /// This structure provides type-safe access to common MIME headers while
@@ -40,7 +40,7 @@ public extension RFC_2046.BodyPart {
     /// // Type-safe subscript access (string literals work via ExpressibleByStringLiteral)
     /// headers["X-Priority"] = "1"
     /// ```
-    struct Headers: Hashable, Sendable, Codable {
+    public struct Headers: Hashable, Sendable, Codable {
         /// Content-Disposition header (RFC 2183)
         public var contentDisposition: RFC_2183.ContentDisposition?
 
@@ -59,7 +59,7 @@ public extension RFC_2046.BodyPart {
         ///
         /// **Warning**: Bypasses validation.
         /// Only use for internal construction after validation.
-        init(
+        public init(
             contentDisposition: RFC_2183.ContentDisposition? = nil,
             contentType: RFC_2045.ContentType? = nil,
             contentTransferEncoding: RFC_2045.ContentTransferEncoding? = nil,
@@ -100,8 +100,7 @@ extension RFC_2046.BodyPart.Headers: UInt8.ASCII.Serializable {
     /// - Parameter bytes: The ASCII byte representation of headers
     /// - Throws: `RFC_2046.BodyPart.Headers.Error` if parsing fails
     public init<Bytes: Collection>(ascii bytes: Bytes, in context: Void = ()) throws(Error)
-        where Bytes.Element == UInt8
-    {
+    where Bytes.Element == UInt8 {
         var contentDisposition: RFC_2183.ContentDisposition?
         var contentType: RFC_2045.ContentType?
         var contentTransferEncoding: RFC_2045.ContentTransferEncoding?
@@ -146,7 +145,7 @@ extension RFC_2046.BodyPart.Headers: UInt8.ASCII.Serializable {
     }
 }
 
-public extension [UInt8] {
+extension [UInt8] {
     /// Creates ASCII bytes from RFC 2046 BodyPart Headers
     ///
     /// Serializes headers as RFC 5322 header lines (name: value CRLF).
@@ -167,7 +166,7 @@ public extension [UInt8] {
     /// ```
     ///
     /// - Parameter headers: The headers to serialize
-    init(_ headers: RFC_2046.BodyPart.Headers) {
+    public init(_ headers: RFC_2046.BodyPart.Headers) {
         self = []
 
         // Estimate capacity based on header presence
@@ -221,13 +220,13 @@ extension RFC_2046.BodyPart.Headers: CustomStringConvertible {}
 
 //// MARK: - Convenience Initializers
 //
-//public extension RFC_2046.BodyPart.Headers {
+// extension RFC_2046.BodyPart.Headers {
 //    /// Creates headers from an array of RFC 5322 headers
 //    ///
 //    /// Preserves header order and allows duplicate headers per RFC 5322.
 //    ///
 //    /// - Parameter headers: Array of RFC 5322 headers
-//    init(_ headers: [RFC_5322.Header]) throws {
+//    public init(_ headers: [RFC_5322.Header]) throws {
 //        var contentDisposition: RFC_2183.ContentDisposition?
 //        var contentType: RFC_2045.ContentType?
 //        var contentTransferEncoding: RFC_2045.ContentTransferEncoding?
@@ -254,11 +253,11 @@ extension RFC_2046.BodyPart.Headers: CustomStringConvertible {}
 //            custom: customHeaders
 //        )
 //    }
-//}
+// }
 
 // MARK: - Subscript
 
-public extension RFC_2046.BodyPart.Headers {
+extension RFC_2046.BodyPart.Headers {
     /// Subscript access to header values by typed name
     ///
     /// Provides type-safe access to headers using `RFC_5322.Header.Name`.
@@ -277,7 +276,7 @@ public extension RFC_2046.BodyPart.Headers {
     ///
     /// - Parameter headerName: Typed header name (e.g., .contentType or "Content-Type")
     /// - Returns: Header value as string, or nil if not present
-    subscript(_ headerName: RFC_5322.Header.Name) -> String? {
+    public subscript(_ headerName: RFC_5322.Header.Name) -> String? {
         get {
             switch headerName {
             case .contentDisposition:

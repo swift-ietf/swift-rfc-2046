@@ -14,13 +14,13 @@ let package = Package(
         .library(
             name: "RFC 2046",
             targets: ["RFC 2046"]
-        ),
+        )
     ],
     dependencies: [
-        .package(url: "https://github.com/swift-standards/swift-rfc-2045", from: "0.1.0"),
-        .package(url: "https://github.com/swift-standards/swift-rfc-2183", from: "0.1.0"),
-        .package(url: "https://github.com/swift-standards/swift-rfc-4648", from: "0.1.0"),
-        .package(url: "https://github.com/swift-standards/swift-rfc-5322", from: "0.1.0"),
+        .package(url: "https://github.com/swift-standards/swift-rfc-2045", from: "0.2.0"),
+        .package(url: "https://github.com/swift-standards/swift-rfc-2183", from: "0.2.0"),
+        .package(url: "https://github.com/swift-standards/swift-rfc-4648", from: "0.2.0"),
+        .package(url: "https://github.com/swift-standards/swift-rfc-5322", from: "0.3.0"),
     ],
     targets: [
         .target(
@@ -47,9 +47,10 @@ extension String {
 
 for target in package.targets where ![.system, .binary, .plugin].contains(target.type) {
     let existing = target.swiftSettings ?? []
-    target.swiftSettings = existing + [
-        .enableUpcomingFeature("ExistentialAny"),
-        .enableUpcomingFeature("InternalImportsByDefault"),
-        .enableUpcomingFeature("MemberImportVisibility"),
-    ]
+    target.swiftSettings =
+        existing + [
+            .enableUpcomingFeature("ExistentialAny"),
+            .enableUpcomingFeature("InternalImportsByDefault"),
+            .enableUpcomingFeature("MemberImportVisibility"),
+        ]
 }

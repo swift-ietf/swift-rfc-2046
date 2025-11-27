@@ -1,8 +1,8 @@
 import INCITS_4_1986
-public import RFC_5322
 import RFC_4648
+public import RFC_5322
 
-public extension RFC_2046 {
+extension RFC_2046 {
     /// A single part within a multipart message
     ///
     /// Each body part has its own headers and content (text or binary).
@@ -23,7 +23,7 @@ public extension RFC_2046 {
     ///     content: imageData
     /// )
     /// ```
-    struct BodyPart: Hashable, Sendable, Codable {
+    public struct BodyPart: Hashable, Sendable, Codable {
         /// Type-safe headers for this body part
         public let headers: Headers
 
@@ -41,7 +41,6 @@ public extension RFC_2046 {
         }
     }
 }
-
 
 // MARK: - UInt8.ASCII.Serializable
 
@@ -139,7 +138,7 @@ extension RFC_2046.BodyPart: UInt8.ASCII.Serializable {
     }
 }
 
-public extension [UInt8] {
+extension [UInt8] {
     /// Creates bytes from RFC 2046 BodyPart (AUTHORITATIVE IMPLEMENTATION)
     ///
     /// Serializes headers and content. Note: This does NOT include
@@ -167,7 +166,7 @@ public extension [UInt8] {
     /// ```
     ///
     /// - Parameter bodyPart: The body part to serialize
-    init(_ bodyPart: RFC_2046.BodyPart) {
+    public init(_ bodyPart: RFC_2046.BodyPart) {
         self = []
 
         let contentBytes = [UInt8](bodyPart.content)
@@ -204,7 +203,7 @@ public extension [UInt8] {
 
 //// MARK: - Convenience Initializers
 //
-//public extension RFC_2046.BodyPart {
+// extension RFC_2046.BodyPart {
 //    /// Creates a body part with Content-Type and content
 //    ///
 //    /// - Parameters:
@@ -212,7 +211,7 @@ public extension [UInt8] {
 //    ///   - transferEncoding: Optional transfer encoding
 //    ///   - additionalHeaders: Additional custom headers
 //    ///   - content: The body content
-//    init(
+//    public init(
 //        contentType: RFC_2045.ContentType,
 //        transferEncoding: RFC_2045.ContentTransferEncoding? = nil,
 //        additionalHeaders: [RFC_5322.Header] = [],
@@ -235,7 +234,7 @@ public extension [UInt8] {
 //    ///   - transferEncoding: Optional transfer encoding
 //    ///   - additionalHeaders: Additional custom headers
 //    ///   - text: The text content
-//    init(
+//    public init(
 //        contentType: RFC_2045.ContentType,
 //        transferEncoding: RFC_2045.ContentTransferEncoding? = nil,
 //        additionalHeaders: [RFC_5322.Header] = [],
@@ -256,14 +255,14 @@ public extension [UInt8] {
 //    /// - Parameters:
 //    ///   - headers: Type-safe MIME headers for this part
 //    ///   - text: The text content
-//    init(headers: Headers, text: String) {
+//    public init(headers: Headers, text: String) {
 //        self.init(headers: headers, content: Content(text))
 //    }
-//}
+// }
 
 // MARK: - Convenience Initializers
 
-public extension RFC_2046.BodyPart {
+extension RFC_2046.BodyPart {
     /// Creates a text body part with the specified content type
     ///
     /// Convenience initializer for text-based body parts.
@@ -282,7 +281,10 @@ public extension RFC_2046.BodyPart {
     ///   - contentType: Content type for the text (e.g., `.textPlainUTF8`, `.textHTMLUTF8`)
     ///   - text: The text content
     /// - Throws: If header or content creation fails
-    init(contentType: RFC_2045.ContentType, text: some StringProtocol) throws {
+    public init(
+        contentType: RFC_2045.ContentType,
+        text: some StringProtocol
+    ) throws {
         var headers = try Headers(ascii: [])
         headers.contentType = contentType
         // UTF-8 text may contain bytes > 127, use 8bit encoding
@@ -297,16 +299,14 @@ public extension RFC_2046.BodyPart {
 
 // MARK: - Computed Properties
 
-public extension RFC_2046.BodyPart {
+extension RFC_2046.BodyPart {
     /// The Content-Type of this part, if specified
-    var contentType: RFC_2045.ContentType? {
+    public var contentType: RFC_2045.ContentType? {
         headers.contentType
     }
 
     /// The Content-Transfer-Encoding of this part, if specified
-    var transferEncoding: RFC_2045.ContentTransferEncoding? {
+    public var transferEncoding: RFC_2045.ContentTransferEncoding? {
         headers.contentTransferEncoding
     }
 }
-
-
