@@ -103,7 +103,10 @@ extension RFC_2046.BodyPart.Headers: UInt8.ASCII.Serializable {
             buffer.append(contentsOf: "Content-Transfer-Encoding".utf8)
             buffer.append(.ascii.colon)
             buffer.append(.ascii.space)
-            RFC_2045.ContentTransferEncoding.serialize(ascii: contentTransferEncoding, into: &buffer)
+            RFC_2045.ContentTransferEncoding.serialize(
+                ascii: contentTransferEncoding,
+                into: &buffer
+            )
             buffer.append(contentsOf: [UInt8].ascii.crlf)
         }
 

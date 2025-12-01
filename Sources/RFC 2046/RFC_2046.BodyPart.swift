@@ -174,7 +174,6 @@ extension RFC_2046.BodyPart: UInt8.ASCII.Serializable {
     }
 }
 
-
 // MARK: - Convenience Initializers
 
 extension RFC_2046.BodyPart {
