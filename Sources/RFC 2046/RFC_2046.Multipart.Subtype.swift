@@ -66,7 +66,12 @@ extension RFC_2046.Multipart {
 // MARK: - UInt8.ASCII.Serializable
 
 extension RFC_2046.Multipart.Subtype: UInt8.ASCII.Serializable {
-    public static let serialize: @Sendable (Self) -> [UInt8] = [UInt8].init
+    public static func serialize<Buffer: RangeReplaceableCollection>(
+        ascii subtype: Self,
+        into buffer: inout Buffer
+    ) where Buffer.Element == UInt8 {
+        buffer.append(contentsOf: subtype.rawValue.utf8)
+    }
 
     /// Parses a subtype from canonical byte representation
     ///
@@ -103,12 +108,6 @@ extension RFC_2046.Multipart.Subtype: UInt8.ASCII.Serializable {
 extension [UInt8] {
     /// Creates ASCII bytes from RFC 2046 Multipart Subtype
     ///
-    /// ## Category Theory
-    ///
-    /// Serialization (natural transformation):
-    /// - **Domain**: RFC_2046.Multipart.Subtype (structured data)
-    /// - **Codomain**: [UInt8] (ASCII bytes)
-    ///
     /// ## Example
     ///
     /// ```swift
@@ -118,7 +117,8 @@ extension [UInt8] {
     ///
     /// - Parameter subtype: The subtype to serialize
     public init(_ subtype: RFC_2046.Multipart.Subtype) {
-        self = Array(subtype.rawValue.utf8)
+        self = []
+        RFC_2046.Multipart.Subtype.serialize(ascii: subtype, into: &self)
     }
 }
 

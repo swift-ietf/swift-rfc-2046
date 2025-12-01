@@ -46,7 +46,43 @@ extension RFC_2046 {
 
 extension RFC_2046.BodyPart: UInt8.ASCII.Serializable {
     /// Serialize to canonical byte representation
-    public static let serialize: @Sendable (Self) -> [UInt8] = { [UInt8]($0) }
+    ///
+    /// Serializes headers and content. Note: This does NOT include
+    /// boundary delimiters - use Multipart serialization for complete messages.
+    ///
+    /// Applies Content-Transfer-Encoding if specified in headers:
+    /// - base64: Encodes content as base64
+    /// - quoted-printable: Uses raw content (not yet implemented)
+    /// - 7bit/8bit/binary: Uses raw content
+    public static func serialize<Buffer: RangeReplaceableCollection>(
+        ascii bodyPart: Self,
+        into buffer: inout Buffer
+    ) where Buffer.Element == UInt8 {
+        let contentBytes = [UInt8](bodyPart.content)
+
+        // Headers (byte-based)
+        RFC_2046.BodyPart.Headers.serialize(ascii: bodyPart.headers, into: &buffer)
+
+        // Blank line
+        buffer.append(contentsOf: [UInt8].ascii.crlf)
+
+        // Content with encoding applied
+        if let encoding = bodyPart.transferEncoding {
+            switch encoding {
+            case .base64:
+                buffer.append(contentsOf: RFC_4648.Base64.encode(contentBytes))
+            case .quotedPrintable:
+                // Quoted-printable encoding not yet implemented; use raw content
+                buffer.append(contentsOf: contentBytes)
+            default:
+                // 7bit, 8bit, binary: use raw content
+                buffer.append(contentsOf: contentBytes)
+            }
+        } else {
+            // No encoding specified: use raw content
+            buffer.append(contentsOf: contentBytes)
+        }
+    }
 
     /// Parses a body part from bytes (AUTHORITATIVE IMPLEMENTATION)
     ///
@@ -138,127 +174,6 @@ extension RFC_2046.BodyPart: UInt8.ASCII.Serializable {
     }
 }
 
-extension [UInt8] {
-    /// Creates bytes from RFC 2046 BodyPart (AUTHORITATIVE IMPLEMENTATION)
-    ///
-    /// Serializes headers and content. Note: This does NOT include
-    /// boundary delimiters - use Multipart serialization for complete messages.
-    ///
-    /// Applies Content-Transfer-Encoding if specified in headers:
-    /// - base64: Encodes content as base64
-    /// - quoted-printable: Uses raw content (not yet implemented)
-    /// - 7bit/8bit/binary: Uses raw content
-    ///
-    /// ## Category Theory
-    ///
-    /// Serialization (natural transformation):
-    /// - **Domain**: RFC_2046.BodyPart (structured data)
-    /// - **Codomain**: [UInt8] (bytes)
-    ///
-    /// ## Example
-    ///
-    /// ```swift
-    /// let part = RFC_2046.BodyPart(
-    ///     contentType: .textPlainUTF8,
-    ///     text: "Hello!"
-    /// )
-    /// let bytes = [UInt8](part)
-    /// ```
-    ///
-    /// - Parameter bodyPart: The body part to serialize
-    public init(_ bodyPart: RFC_2046.BodyPart) {
-        self = []
-
-        let contentBytes = [UInt8](bodyPart.content)
-
-        // Estimate capacity: headers (~200) + CRLF (2) + content
-        reserveCapacity(200 + 2 + contentBytes.count)
-
-        let crlf: [UInt8] = .ascii.crlf
-
-        // Headers (byte-based)
-        self.append(contentsOf: [UInt8](bodyPart.headers))
-
-        // Blank line
-        self.append(contentsOf: crlf)
-
-        // Content with encoding applied
-        if let encoding = bodyPart.transferEncoding {
-            switch encoding {
-            case .base64:
-                self.append(contentsOf: RFC_4648.Base64.encode(contentBytes))
-            case .quotedPrintable:
-                // Quoted-printable encoding not yet implemented; use raw content
-                self.append(contentsOf: contentBytes)
-            default:
-                // 7bit, 8bit, binary: use raw content
-                self.append(contentsOf: contentBytes)
-            }
-        } else {
-            // No encoding specified: use raw content
-            self.append(contentsOf: contentBytes)
-        }
-    }
-}
-
-//// MARK: - Convenience Initializers
-//
-// extension RFC_2046.BodyPart {
-//    /// Creates a body part with Content-Type and content
-//    ///
-//    /// - Parameters:
-//    ///   - contentType: Content-Type for this part
-//    ///   - transferEncoding: Optional transfer encoding
-//    ///   - additionalHeaders: Additional custom headers
-//    ///   - content: The body content
-//    public init(
-//        contentType: RFC_2045.ContentType,
-//        transferEncoding: RFC_2045.ContentTransferEncoding? = nil,
-//        additionalHeaders: [RFC_5322.Header] = [],
-//        content: Content
-//    ) {
-//        headers = Headers(
-//            contentType: contentType,
-//            contentTransferEncoding: transferEncoding,
-//            custom: additionalHeaders
-//        )
-//        self.content = content
-//    }
-//
-//    /// Creates a body part with Content-Type and text content
-//    ///
-//    /// Convenience initializer for text content.
-//    ///
-//    /// - Parameters:
-//    ///   - contentType: Content-Type for this part
-//    ///   - transferEncoding: Optional transfer encoding
-//    ///   - additionalHeaders: Additional custom headers
-//    ///   - text: The text content
-//    public init(
-//        contentType: RFC_2045.ContentType,
-//        transferEncoding: RFC_2045.ContentTransferEncoding? = nil,
-//        additionalHeaders: [RFC_5322.Header] = [],
-//        text: String
-//    ) {
-//        self.init(
-//            contentType: contentType,
-//            transferEncoding: transferEncoding,
-//            additionalHeaders: additionalHeaders,
-//            content: Content(text)
-//        )
-//    }
-//
-//    /// Creates a body part with typed headers and text content
-//    ///
-//    /// Convenience initializer for text content.
-//    ///
-//    /// - Parameters:
-//    ///   - headers: Type-safe MIME headers for this part
-//    ///   - text: The text content
-//    public init(headers: Headers, text: String) {
-//        self.init(headers: headers, content: Content(text))
-//    }
-// }
 
 // MARK: - Convenience Initializers
 

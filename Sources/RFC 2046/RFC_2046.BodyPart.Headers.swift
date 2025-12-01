@@ -76,7 +76,46 @@ extension RFC_2046.BodyPart {
 // MARK: - UInt8.ASCII.Serializable
 
 extension RFC_2046.BodyPart.Headers: UInt8.ASCII.Serializable {
-    public static let serialize: @Sendable (Self) -> [UInt8] = [UInt8].init
+    public static func serialize<Buffer: RangeReplaceableCollection>(
+        ascii headers: Self,
+        into buffer: inout Buffer
+    ) where Buffer.Element == UInt8 {
+        // Content-Disposition
+        if let contentDisposition = headers.contentDisposition {
+            buffer.append(contentsOf: "Content-Disposition".utf8)
+            buffer.append(.ascii.colon)
+            buffer.append(.ascii.space)
+            RFC_2183.ContentDisposition.serialize(ascii: contentDisposition, into: &buffer)
+            buffer.append(contentsOf: [UInt8].ascii.crlf)
+        }
+
+        // Content-Type
+        if let contentType = headers.contentType {
+            buffer.append(contentsOf: "Content-Type".utf8)
+            buffer.append(.ascii.colon)
+            buffer.append(.ascii.space)
+            RFC_2045.ContentType.serialize(ascii: contentType, into: &buffer)
+            buffer.append(contentsOf: [UInt8].ascii.crlf)
+        }
+
+        // Content-Transfer-Encoding
+        if let contentTransferEncoding = headers.contentTransferEncoding {
+            buffer.append(contentsOf: "Content-Transfer-Encoding".utf8)
+            buffer.append(.ascii.colon)
+            buffer.append(.ascii.space)
+            RFC_2045.ContentTransferEncoding.serialize(ascii: contentTransferEncoding, into: &buffer)
+            buffer.append(contentsOf: [UInt8].ascii.crlf)
+        }
+
+        // Custom headers
+        for header in headers.custom {
+            RFC_5322.Header.Name.serialize(ascii: header.name, into: &buffer)
+            buffer.append(.ascii.colon)
+            buffer.append(.ascii.space)
+            RFC_5322.Header.Value.serialize(ascii: header.value, into: &buffer)
+            buffer.append(contentsOf: [UInt8].ascii.crlf)
+        }
+    }
 
     /// Parses headers from canonical byte representation
     ///
@@ -280,11 +319,11 @@ extension RFC_2046.BodyPart.Headers {
         get {
             switch headerName {
             case .contentDisposition:
-                return contentDisposition.map(String.init)
+                return contentDisposition.map(\.description)
             case .contentType:
-                return contentType.map(String.init)
+                return contentType.map(\.description)
             case .contentTransferEncoding:
-                return contentTransferEncoding.map(String.init)
+                return contentTransferEncoding.map(\.description)
             default:
                 return custom[headerName]
             }

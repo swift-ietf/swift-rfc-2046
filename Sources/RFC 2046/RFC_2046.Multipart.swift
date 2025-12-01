@@ -216,7 +216,81 @@ extension RFC_2046.Multipart: UInt8.ASCII.Serializable {
     ///
     /// Serialization is always context-free because the Multipart value
     /// contains its own boundary delimiter.
-    public static let serialize: @Sendable (Self) -> [UInt8] = [UInt8].init
+    ///
+    /// ## RFC 2046 Format
+    ///
+    /// ```
+    /// [preamble CRLF]
+    /// --boundary CRLF
+    /// headers CRLF
+    /// CRLF
+    /// content
+    /// --boundary CRLF
+    /// ...
+    /// --boundary-- CRLF
+    /// [epilogue]
+    /// ```
+    public static func serialize<Buffer: RangeReplaceableCollection>(
+        ascii multipart: Self,
+        into buffer: inout Buffer
+    ) where Buffer.Element == UInt8 {
+        let crlf: [UInt8] = .ascii.crlf
+        let boundaryPrefix: [UInt8] = [.ascii.hyphen, .ascii.hyphen]
+        var boundaryBytes: [UInt8] = []
+        RFC_2046.Boundary.serialize(ascii: multipart.boundary, into: &boundaryBytes)
+
+        // Preamble (optional)
+        if let preamble = multipart.preamble {
+            buffer.append(contentsOf: preamble.utf8)
+            buffer.append(contentsOf: crlf)
+            buffer.append(contentsOf: crlf)
+        }
+
+        // Body parts
+        for part in multipart.parts {
+            // Boundary delimiter
+            buffer.append(contentsOf: boundaryPrefix)
+            buffer.append(contentsOf: boundaryBytes)
+            buffer.append(contentsOf: crlf)
+
+            // Headers (using byte serialization)
+            RFC_2046.BodyPart.Headers.serialize(ascii: part.headers, into: &buffer)
+
+            // Blank line between headers and content
+            buffer.append(contentsOf: crlf)
+
+            // Content with encoding applied (may be binary)
+            let contentBytes = [UInt8](part.content)
+            if let encoding = part.transferEncoding {
+                switch encoding {
+                case .base64:
+                    buffer.append(contentsOf: RFC_4648.Base64.encode(contentBytes))
+                case .quotedPrintable:
+                    // Quoted-printable encoding not yet implemented; use raw content
+                    buffer.append(contentsOf: contentBytes)
+                default:
+                    // 7bit, 8bit, binary: use raw content
+                    buffer.append(contentsOf: contentBytes)
+                }
+            } else {
+                // No encoding specified: use raw content
+                buffer.append(contentsOf: contentBytes)
+            }
+            buffer.append(contentsOf: crlf)
+        }
+
+        // Final boundary
+        buffer.append(contentsOf: boundaryPrefix)
+        buffer.append(contentsOf: boundaryBytes)
+        buffer.append(contentsOf: boundaryPrefix)  // "--" suffix for final
+        buffer.append(contentsOf: crlf)
+
+        // Epilogue (optional)
+        if let epilogue = multipart.epilogue {
+            buffer.append(contentsOf: epilogue.utf8)
+            buffer.append(contentsOf: crlf)
+        }
+    }
 
     /// Parses multipart data from bytes with context (CANONICAL PRIMITIVE)
     ///
@@ -361,114 +435,5 @@ extension RFC_2046.Multipart: UInt8.ASCII.Serializable {
             preamble: preambleBytes.map { String(decoding: $0, as: UTF8.self) },
             epilogue: epilogueBytes.map { String(decoding: $0, as: UTF8.self) }
         )
-    }
-}
-
-extension [UInt8] {
-    /// Creates ASCII bytes from RFC 2046 Multipart message
-    ///
-    /// Serializes the complete multipart body including boundaries,
-    /// preamble, parts, and epilogue as raw bytes.
-    ///
-    /// ## Category Theory
-    ///
-    /// Serialization (natural transformation):
-    /// - **Domain**: RFC_2046.Multipart (structured data)
-    /// - **Codomain**: [UInt8] (ASCII bytes with embedded binary)
-    ///
-    /// ## RFC 2046 Format
-    ///
-    /// ```
-    /// [preamble CRLF]
-    /// --boundary CRLF
-    /// headers CRLF
-    /// CRLF
-    /// content
-    /// --boundary CRLF
-    /// ...
-    /// --boundary-- CRLF
-    /// [epilogue]
-    /// ```
-    ///
-    /// ## Example
-    ///
-    /// ```swift
-    /// let multipart = try RFC_2046.Multipart(
-    ///     subtype: .alternative,
-    ///     parts: [textPart, htmlPart],
-    ///     boundary: "----=_Part_12345"
-    /// )
-    /// let bytes = [UInt8](multipart)
-    /// ```
-    ///
-    /// - Parameter multipart: The multipart message to serialize
-    public init(_ multipart: RFC_2046.Multipart) {
-        self = []
-
-        // Estimate capacity
-        var estimatedSize = 0
-        estimatedSize += (multipart.preamble?.utf8.count ?? 0) + 4
-        estimatedSize += multipart.parts.count * (multipart.boundary.rawValue.count + 10)
-        for part in multipart.parts {
-            estimatedSize += [UInt8](part.content).count + 200  // headers estimate
-        }
-        estimatedSize += (multipart.epilogue?.utf8.count ?? 0) + 4
-        self.reserveCapacity(estimatedSize)
-
-        let crlf: [UInt8] = .ascii.crlf
-        let boundaryPrefix: [UInt8] = [.ascii.hyphen, .ascii.hyphen]
-        let boundaryBytes = [UInt8](multipart.boundary)
-
-        // Preamble (optional)
-        if let preamble = multipart.preamble {
-            self.append(contentsOf: preamble.utf8)
-            self.append(contentsOf: crlf)
-            self.append(contentsOf: crlf)
-        }
-
-        // Body parts
-        for part in multipart.parts {
-            // Boundary delimiter
-            self.append(contentsOf: boundaryPrefix)
-            self.append(contentsOf: boundaryBytes)
-            self.append(contentsOf: crlf)
-
-            // Headers (using byte serialization)
-            self.append(contentsOf: [UInt8](part.headers))
-
-            // Blank line between headers and content
-            self.append(contentsOf: crlf)
-
-            // Content with encoding applied (may be binary)
-            let contentBytes = [UInt8](part.content)
-            if let encoding = part.transferEncoding {
-                switch encoding {
-                case .base64:
-                    self.append(contentsOf: RFC_4648.Base64.encode(contentBytes))
-                case .quotedPrintable:
-                    // Quoted-printable encoding not yet implemented; use raw content
-                    self.append(contentsOf: contentBytes)
-                default:
-                    // 7bit, 8bit, binary: use raw content
-                    self.append(contentsOf: contentBytes)
-                }
-            } else {
-                // No encoding specified: use raw content
-                self.append(contentsOf: contentBytes)
-            }
-            self.append(contentsOf: crlf)
-        }
-
-        // Final boundary
-        self.append(contentsOf: boundaryPrefix)
-        self.append(contentsOf: boundaryBytes)
-        self.append(contentsOf: boundaryPrefix)  // "--" suffix for final
-        self.append(contentsOf: crlf)
-
-        // Epilogue (optional)
-        if let epilogue = multipart.epilogue {
-            self.append(contentsOf: epilogue.utf8)
-            self.append(contentsOf: crlf)
-        }
     }
 }

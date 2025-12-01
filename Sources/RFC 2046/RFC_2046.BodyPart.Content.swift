@@ -25,7 +25,12 @@ extension RFC_2046.BodyPart {
 // MARK: - UInt8.ASCII.Serializable
 
 extension RFC_2046.BodyPart.Content: UInt8.ASCII.Serializable {
-    public static let serialize: @Sendable (Self) -> [UInt8] = [UInt8].init
+    public static func serialize<Buffer: RangeReplaceableCollection>(
+        ascii content: Self,
+        into buffer: inout Buffer
+    ) where Buffer.Element == UInt8 {
+        buffer.append(contentsOf: content.rawValue)
+    }
 
     public init<Bytes: Collection>(
         ascii bytes: Bytes,
@@ -39,7 +44,8 @@ extension RFC_2046.BodyPart.Content: UInt8.ASCII.Serializable {
 extension [UInt8] {
     /// Creates bytes from BodyPart.Content
     init(_ content: RFC_2046.BodyPart.Content) {
-        self = content.rawValue
+        self = []
+        RFC_2046.BodyPart.Content.serialize(ascii: content, into: &self)
     }
 }
 

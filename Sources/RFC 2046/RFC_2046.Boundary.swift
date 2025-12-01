@@ -106,7 +106,12 @@ extension RFC_2046.Boundary {
 // MARK: - UInt8.ASCII.Serializable
 
 extension RFC_2046.Boundary: UInt8.ASCII.Serializable {
-    public static let serialize: @Sendable (Self) -> [UInt8] = [UInt8].init
+    public static func serialize<Buffer: RangeReplaceableCollection>(
+        ascii boundary: Self,
+        into buffer: inout Buffer
+    ) where Buffer.Element == UInt8 {
+        buffer.append(contentsOf: boundary.rawValue.utf8)
+    }
 
     /// Parses a boundary from canonical byte representation
     ///
@@ -198,7 +203,8 @@ extension [UInt8] {
     ///
     /// - Parameter boundary: The boundary to serialize
     public init(_ boundary: RFC_2046.Boundary) {
-        self = Array(boundary.rawValue.utf8)
+        self = []
+        RFC_2046.Boundary.serialize(ascii: boundary, into: &self)
     }
 }
 
