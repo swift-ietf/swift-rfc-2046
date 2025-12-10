@@ -22,9 +22,9 @@ extension RFC_2046.BodyPart {
 //    public var count: Int { rawValue.count }
 // }
 
-// MARK: - UInt8.ASCII.Serializable
+// MARK: - Binary.ASCII.Serializable
 
-extension RFC_2046.BodyPart.Content: UInt8.ASCII.Serializable {
+extension RFC_2046.BodyPart.Content: Binary.ASCII.Serializable {
     public static func serialize<Buffer: RangeReplaceableCollection>(
         ascii content: Self,
         into buffer: inout Buffer
@@ -49,5 +49,5 @@ extension [UInt8] {
     }
 }
 
-extension RFC_2046.BodyPart.Content: UInt8.ASCII.RawRepresentable {}
+extension RFC_2046.BodyPart.Content: Binary.ASCII.RawRepresentable {}
 extension RFC_2046.BodyPart.Content: CustomStringConvertible {}

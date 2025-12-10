@@ -73,9 +73,9 @@ extension RFC_2046.BodyPart {
     }
 }
 
-// MARK: - UInt8.ASCII.Serializable
+// MARK: - Binary.ASCII.Serializable
 
-extension RFC_2046.BodyPart.Headers: UInt8.ASCII.Serializable {
+extension RFC_2046.BodyPart.Headers: Binary.ASCII.Serializable {
     public static func serialize<Buffer: RangeReplaceableCollection>(
         ascii headers: Self,
         into buffer: inout Buffer

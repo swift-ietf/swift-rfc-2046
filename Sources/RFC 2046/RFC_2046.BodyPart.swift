@@ -42,9 +42,9 @@ extension RFC_2046 {
     }
 }
 
-// MARK: - UInt8.ASCII.Serializable
+// MARK: - Binary.ASCII.Serializable
 
-extension RFC_2046.BodyPart: UInt8.ASCII.Serializable {
+extension RFC_2046.BodyPart: Binary.ASCII.Serializable {
     /// Serialize to canonical byte representation
     ///
     /// Serializes headers and content. Note: This does NOT include

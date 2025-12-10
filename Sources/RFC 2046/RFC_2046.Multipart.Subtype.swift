@@ -63,9 +63,9 @@ extension RFC_2046.Multipart {
     }
 }
 
-// MARK: - UInt8.ASCII.Serializable
+// MARK: - Binary.ASCII.Serializable
 
-extension RFC_2046.Multipart.Subtype: UInt8.ASCII.Serializable {
+extension RFC_2046.Multipart.Subtype: Binary.ASCII.Serializable {
     public static func serialize<Buffer: RangeReplaceableCollection>(
         ascii subtype: Self,
         into buffer: inout Buffer
@@ -124,7 +124,7 @@ extension [UInt8] {
 
 // MARK: - Protocol Conformances
 
-extension RFC_2046.Multipart.Subtype: UInt8.ASCII.RawRepresentable {}
+extension RFC_2046.Multipart.Subtype: Binary.ASCII.RawRepresentable {}
 extension RFC_2046.Multipart.Subtype: CustomStringConvertible {}
 
 // MARK: - Hashable

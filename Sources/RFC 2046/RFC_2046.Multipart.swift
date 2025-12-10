@@ -209,9 +209,9 @@ extension RFC_2046.Multipart {
     }
 }
 
-// MARK: - UInt8.ASCII.Serializable Conformance
+// MARK: - Binary.ASCII.Serializable Conformance
 
-extension RFC_2046.Multipart: UInt8.ASCII.Serializable {
+extension RFC_2046.Multipart: Binary.ASCII.Serializable {
     /// Serialize to canonical ASCII byte representation
     ///
     /// Serialization is always context-free because the Multipart value

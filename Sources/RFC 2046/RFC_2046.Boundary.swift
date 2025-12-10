@@ -103,9 +103,9 @@ extension RFC_2046.Boundary {
     }
 }
 
-// MARK: - UInt8.ASCII.Serializable
+// MARK: - Binary.ASCII.Serializable
 
-extension RFC_2046.Boundary: UInt8.ASCII.Serializable {
+extension RFC_2046.Boundary: Binary.ASCII.Serializable {
     public static func serialize<Buffer: RangeReplaceableCollection>(
         ascii boundary: Self,
         into buffer: inout Buffer
@@ -210,7 +210,7 @@ extension [UInt8] {
 
 // MARK: - Protocol Conformances
 
-extension RFC_2046.Boundary: UInt8.ASCII.RawRepresentable {}
+extension RFC_2046.Boundary: Binary.ASCII.RawRepresentable {}
 extension RFC_2046.Boundary: CustomStringConvertible {}
 
 // MARK: - Hashable
