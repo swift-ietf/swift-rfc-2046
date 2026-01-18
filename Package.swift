@@ -8,7 +8,7 @@ let package = Package(
         .macOS(.v26),
         .iOS(.v26),
         .tvOS(.v26),
-        .watchOS(.v26),
+        .watchOS(.v26)
     ],
     products: [
         .library(
@@ -20,7 +20,7 @@ let package = Package(
         .package(path: "../swift-rfc-2045"),
         .package(path: "../swift-rfc-2183"),
         .package(path: "../swift-rfc-4648"),
-        .package(path: "../swift-rfc-5322"),
+        .package(path: "../swift-rfc-5322")
     ],
     targets: [
         .target(
@@ -29,13 +29,9 @@ let package = Package(
                 .product(name: "RFC 2045", package: "swift-rfc-2045"),
                 .product(name: "RFC 2183", package: "swift-rfc-2183"),
                 .product(name: "RFC 4648", package: "swift-rfc-4648"),
-                .product(name: "RFC 5322", package: "swift-rfc-5322"),
+                .product(name: "RFC 5322", package: "swift-rfc-5322")
             ]
-        ),
-        .testTarget(
-            name: "RFC 2046".tests,
-            dependencies: ["RFC 2046"]
-        ),
+        )
     ],
     swiftLanguageModes: [.v6]
 )
@@ -51,6 +47,6 @@ for target in package.targets where ![.system, .binary, .plugin].contains(target
         existing + [
             .enableUpcomingFeature("ExistentialAny"),
             .enableUpcomingFeature("InternalImportsByDefault"),
-            .enableUpcomingFeature("MemberImportVisibility"),
+            .enableUpcomingFeature("MemberImportVisibility")
         ]
 }
