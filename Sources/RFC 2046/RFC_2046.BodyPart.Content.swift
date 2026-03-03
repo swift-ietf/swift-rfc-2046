@@ -35,7 +35,7 @@ extension RFC_2046.BodyPart.Content: Binary.ASCII.Serializable {
     public init<Bytes: Collection>(
         ascii bytes: Bytes,
         in context: Void = ()
-    ) throws
+    ) throws(Never)
     where Bytes.Element == UInt8 {
         self.init(Array(bytes))
     }

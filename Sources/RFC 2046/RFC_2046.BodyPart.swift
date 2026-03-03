@@ -198,7 +198,7 @@ extension RFC_2046.BodyPart {
     public init(
         contentType: RFC_2045.ContentType,
         text: some StringProtocol
-    ) throws {
+    ) throws(Headers.Error) {
         var headers = try Headers(ascii: [])
         headers.contentType = contentType
         // UTF-8 text may contain bytes > 127, use 8bit encoding
