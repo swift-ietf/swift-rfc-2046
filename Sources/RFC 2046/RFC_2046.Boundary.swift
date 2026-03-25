@@ -84,7 +84,7 @@ extension RFC_2046.Boundary {
     ///                  "+" / "_" / "," / "-" / "." /
     ///                  "/" / ":" / "=" / "?"
     /// ```
-    @inline(__always)
+    @inline(always)
     static func isValidBoundaryCharacter(_ byte: UInt8) -> Bool {
         byte.ascii.isAlphanumeric
             || byte == UInt8.ascii.apostrophe  // '
