@@ -1,0 +1,11 @@
+# .github/metadata.yaml
+# Triaged by AI-assisted bulk pass (2026-04-29).
+description: "Swift implementation of RFC 2046: MIME Part Two - Media Types (Multipart)."
+topics:
+  - standards
+  - rfc
+  - rfc-2046
+  - email
+  - mime
+  - multipart
+homepage: "https://swift-institute.org"
