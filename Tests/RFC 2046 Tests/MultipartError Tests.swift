@@ -149,19 +149,19 @@ struct `Subtype.Error - Error cases` {
     @Test
     func `empty subtype throws empty error`() {
         #expect(throws: RFC_2046.Multipart.Subtype.Error.self) {
-            _ = try RFC_2046.Multipart.Subtype(ascii: Array("".utf8))
+            _ = try RFC_2046.Multipart.Subtype(ascii: Array<Byte>("".utf8))
         }
     }
 
     @Test
     func `valid subtype succeeds`() throws {
-        let subtype = try RFC_2046.Multipart.Subtype(ascii: Array("alternative".utf8))
+        let subtype = try RFC_2046.Multipart.Subtype(ascii: Array<Byte>("alternative".utf8))
         #expect(subtype.rawValue == "alternative")
     }
 
     @Test
     func `subtype normalizes to lowercase`() throws {
-        let subtype = try RFC_2046.Multipart.Subtype(ascii: Array("ALTERNATIVE".utf8))
+        let subtype = try RFC_2046.Multipart.Subtype(ascii: Array<Byte>("ALTERNATIVE".utf8))
         #expect(subtype.rawValue == "alternative")
     }
 }
@@ -173,20 +173,20 @@ struct `Headers.Error - Error cases` {
     @Test
     func `invalid header line throws error`() {
         #expect(throws: RFC_2046.BodyPart.Headers.Error.self) {
-            _ = try RFC_2046.BodyPart.Headers(ascii: Array("invalid header without colon".utf8))
+            _ = try RFC_2046.BodyPart.Headers(ascii: Array<Byte>("invalid header without colon".utf8))
         }
     }
 
     @Test
     func `empty header name throws error`() {
         #expect(throws: RFC_2046.BodyPart.Headers.Error.self) {
-            _ = try RFC_2046.BodyPart.Headers(ascii: Array(": value".utf8))
+            _ = try RFC_2046.BodyPart.Headers(ascii: Array<Byte>(": value".utf8))
         }
     }
 
     @Test
     func `valid header parses correctly`() throws {
-        let headers = try RFC_2046.BodyPart.Headers(ascii: Array("Content-Type: text/plain".utf8))
+        let headers = try RFC_2046.BodyPart.Headers(ascii: Array<Byte>("Content-Type: text/plain".utf8))
         #expect(headers.contentType != nil)
     }
 }

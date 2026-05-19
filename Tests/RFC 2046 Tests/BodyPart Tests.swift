@@ -20,7 +20,7 @@ struct `BodyPart - Core initialization` {
         let part = RFC_2046.BodyPart(headers: headers, content: content)
 
         #expect(part.headers == headers)
-        #expect([UInt8](part.content) == [72, 101, 108, 108, 111])
+        #expect([Byte](part.content) == [72, 101, 108, 108, 111] as [Byte])
     }
 
     @Test
@@ -32,23 +32,23 @@ struct `BodyPart - Core initialization` {
 
         let part = RFC_2046.BodyPart(headers: headers, content: content)
 
-        #expect([UInt8](part.content).isEmpty)
+        #expect([Byte](part.content).isEmpty)
     }
 
     @Test
     func `Content from text string`() throws {
         let content = try RFC_2046.BodyPart.Content("Hello, World!")
 
-        #expect([UInt8](content) == Array("Hello, World!".utf8))
+        #expect([Byte](content) == Array<Byte>("Hello, World!".utf8))
         #expect(content.description == "Hello, World!")
     }
 
     @Test
     func `Content from bytes`() throws {
-        let bytes: [UInt8] = [72, 101, 108, 108, 111]
+        let bytes: [Byte] = [72, 101, 108, 108, 111]
         let content = RFC_2046.BodyPart.Content(bytes)
 
-        #expect([UInt8](content) == bytes)
+        #expect([Byte](content) == bytes)
         #expect(content.description == "Hello")
     }
 }
@@ -60,9 +60,9 @@ struct `BodyPart Content - Serialization` {
     @Test
     func `Content serializes to bytes`() throws {
         let content = try RFC_2046.BodyPart.Content("Hello")
-        let bytes = [UInt8](content)
+        let bytes = [Byte](content)
 
-        #expect(bytes == Array("Hello".utf8))
+        #expect(bytes == Array<Byte>("Hello".utf8))
     }
 
     @Test
@@ -74,7 +74,7 @@ struct `BodyPart Content - Serialization` {
 
     @Test
     func `Content rawValue contains bytes`() throws {
-        let bytes: [UInt8] = [0x48, 0x65, 0x6C, 0x6C, 0x6F]
+        let bytes: [Byte] = [0x48, 0x65, 0x6C, 0x6C, 0x6F]
         let content = RFC_2046.BodyPart.Content(bytes)
 
         #expect(content.rawValue == bytes)
@@ -91,7 +91,7 @@ struct `BodyPart - Serialization` {
         let content = try RFC_2046.BodyPart.Content("Hello, World!")
         let part = RFC_2046.BodyPart(headers: headers, content: content)
 
-        let serialized = [UInt8](part)
+        let serialized = [Byte](part)
         let string = String(decoding: serialized, as: UTF8.self)
 
         #expect(string.contains("Content-Type: text/plain; charset=UTF-8"))
@@ -108,7 +108,7 @@ struct `BodyPart - Serialization` {
         let content = try RFC_2046.BodyPart.Content("Hello")
         let part = RFC_2046.BodyPart(headers: headers, content: content)
 
-        let serialized = [UInt8](part)
+        let serialized = [Byte](part)
         let string = String(decoding: serialized, as: UTF8.self)
 
         #expect(string.contains("Content-Transfer-Encoding: 7bit"))
@@ -124,7 +124,7 @@ struct `BodyPart - Serialization` {
         let content = try RFC_2046.BodyPart.Content("Hello, World!")
         let part = RFC_2046.BodyPart(headers: headers, content: content)
 
-        let serialized = [UInt8](part)
+        let serialized = [Byte](part)
         let string = String(decoding: serialized, as: UTF8.self)
 
         #expect(string.contains("Content-Transfer-Encoding: base64"))
@@ -137,7 +137,7 @@ struct `BodyPart - Serialization` {
         let content = RFC_2046.BodyPart.Content([])
         let part = RFC_2046.BodyPart(headers: headers, content: content)
 
-        let serialized = [UInt8](part)
+        let serialized = [Byte](part)
         let string = String(decoding: serialized, as: UTF8.self)
 
         #expect(string.contains("Content-Type:"))
@@ -151,7 +151,7 @@ struct `BodyPart - Serialization` {
 struct `BodyPart - Parsing` {
     @Test
     func `Parse body part from raw bytes`() throws {
-        let bytes = Array("Content-Type: text/plain\r\n\r\nHello!".utf8)
+        let bytes = Array<Byte>("Content-Type: text/plain\r\n\r\nHello!".utf8)
         let part = try RFC_2046.BodyPart(ascii: bytes)
 
         #expect(part.contentType?.type == "text")
@@ -161,7 +161,7 @@ struct `BodyPart - Parsing` {
 
     @Test
     func `Parse body part with LF line endings`() throws {
-        let bytes = Array("Content-Type: text/plain\n\nHello!".utf8)
+        let bytes = Array<Byte>("Content-Type: text/plain\n\nHello!".utf8)
         let part = try RFC_2046.BodyPart(ascii: bytes)
 
         #expect(part.content.description == "Hello!")
@@ -169,11 +169,11 @@ struct `BodyPart - Parsing` {
 
     @Test
     func `Parse body part with headers only`() throws {
-        let bytes = Array("Content-Type: text/plain".utf8)
+        let bytes = Array<Byte>("Content-Type: text/plain".utf8)
         let part = try RFC_2046.BodyPart(ascii: bytes)
 
         #expect(part.contentType?.type == "text")
-        #expect([UInt8](part.content).isEmpty)
+        #expect([Byte](part.content).isEmpty)
     }
 }
 
@@ -187,11 +187,11 @@ struct `BodyPart - Round-trip` {
         let content = try RFC_2046.BodyPart.Content("Hello, World!")
         let original = RFC_2046.BodyPart(headers: headers, content: content)
 
-        let serialized = [UInt8](original)
+        let serialized = [Byte](original)
         let parsed = try RFC_2046.BodyPart(ascii: serialized)
 
         #expect(parsed.headers == original.headers)
-        #expect([UInt8](parsed.content) == [UInt8](original.content))
+        #expect([Byte](parsed.content) == [Byte](original.content))
     }
 
     @Test
@@ -200,10 +200,10 @@ struct `BodyPart - Round-trip` {
         let content = RFC_2046.BodyPart.Content([0x48, 0x65, 0x6C, 0x6C, 0x6F])
         let original = RFC_2046.BodyPart(headers: headers, content: content)
 
-        let serialized = [UInt8](original)
+        let serialized = [Byte](original)
         let parsed = try RFC_2046.BodyPart(ascii: serialized)
 
-        #expect([UInt8](parsed.content) == [UInt8](original.content))
+        #expect([Byte](parsed.content) == [Byte](original.content))
     }
 
     @Test
@@ -212,10 +212,10 @@ struct `BodyPart - Round-trip` {
         let content = RFC_2046.BodyPart.Content([])
         let original = RFC_2046.BodyPart(headers: headers, content: content)
 
-        let serialized = [UInt8](original)
+        let serialized = [Byte](original)
         let parsed = try RFC_2046.BodyPart(ascii: serialized)
 
-        #expect([UInt8](parsed.content).isEmpty)
+        #expect([Byte](parsed.content).isEmpty)
     }
 }
 
@@ -291,7 +291,7 @@ struct `BodyPart - Codable` {
         let data = try encoder.encode(original)
         let decoded = try decoder.decode(RFC_2046.BodyPart.self, from: data)
 
-        #expect([UInt8](decoded.content) == [UInt8](original.content))
+        #expect([Byte](decoded.content) == [Byte](original.content))
     }
 }
 

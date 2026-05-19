@@ -57,20 +57,25 @@ extension RFC_2046.BodyPart: Binary.ASCII.Serializable {
     public static func serialize<Buffer: RangeReplaceableCollection>(
         ascii bodyPart: Self,
         into buffer: inout Buffer
-    ) where Buffer.Element == UInt8 {
-        let contentBytes = [UInt8](bodyPart.content)
+    ) where Buffer.Element == Byte {
+        // BodyPart.Content storage is now [Byte]; bridge to [UInt8] for the
+        // RFC_4648.Base64 dep (still UInt8-substrate).
+        let contentBytes: [Byte] = bodyPart.content.rawValue
 
-        // Headers (byte-based)
+        // Headers (byte-based) — RFC_2046.BodyPart.Headers is migrated to Byte.
         RFC_2046.BodyPart.Headers.serialize(ascii: bodyPart.headers, into: &buffer)
 
         // Blank line
-        buffer.append(contentsOf: [UInt8].ascii.crlf)
+        buffer.append(ASCII.Code.cr)
+        buffer.append(ASCII.Code.lf)
 
         // Content with encoding applied
         if let encoding = bodyPart.transferEncoding {
             switch encoding {
             case .base64:
-                buffer.append(contentsOf: RFC_4648.Base64.encode(contentBytes))
+                // RFC_4648.Base64.encode is UInt8-substrate; bridge once.
+                let u8 = Array<UInt8>(contentBytes)
+                buffer.append(contentsOf: Array<Byte>(RFC_4648.Base64.encode(u8)))
             case .quotedPrintable:
                 // Quoted-printable encoding not yet implemented; use raw content
                 buffer.append(contentsOf: contentBytes)
@@ -106,25 +111,23 @@ extension RFC_2046.BodyPart: Binary.ASCII.Serializable {
     /// ## Example
     ///
     /// ```swift
-    /// let bytes = Array("Content-Type: text/plain\r\n\r\nHello!".utf8)
+    /// let bytes = Array<Byte>("Content-Type: text/plain\r\n\r\nHello!".utf8)
     /// let part = try RFC_2046.BodyPart(ascii: bytes)
     /// ```
     ///
     /// - Parameter bytes: The body part bytes (headers + blank line + content)
     /// - Throws: `RFC_2046.BodyPart.Error` if parsing fails
     public init<Bytes: Collection>(ascii bytes: Bytes, in context: Void = ()) throws(Error)
-    where Bytes.Element == UInt8 {
-        let byteArray = Array(bytes)
+    where Bytes.Element == Byte {
+        let byteArray = Array<Byte>(bytes)
 
         // Find the blank line separating headers from content
         // Look for CRLF CRLF or LF LF
-        let crlf: [UInt8] = .ascii.crlf
-        var doubleCrlf: [UInt8] = []
-        doubleCrlf.reserveCapacity(4)
-        doubleCrlf.append(contentsOf: crlf)
-        doubleCrlf.append(contentsOf: crlf)
-
-        let doubleLf: [UInt8] = [.ascii.lf, .ascii.lf]
+        let doubleCrlf: [Byte] = [
+            ASCII.Code.cr, ASCII.Code.lf,
+            ASCII.Code.cr, ASCII.Code.lf,
+        ]
+        let doubleLf: [Byte] = [ASCII.Code.lf, ASCII.Code.lf]
 
         var headerEndIndex: Int?
         var contentStartIndex: Int?
@@ -163,7 +166,7 @@ extension RFC_2046.BodyPart: Binary.ASCII.Serializable {
         }
 
         // Extract content
-        let contentBytes: [UInt8]
+        let contentBytes: [Byte]
         if contentStart < byteArray.count {
             contentBytes = Array(byteArray[contentStart...])
         } else {
@@ -199,7 +202,7 @@ extension RFC_2046.BodyPart {
         contentType: RFC_2045.ContentType,
         text: some StringProtocol
     ) throws(Headers.Error) {
-        var headers = try Headers(ascii: [])
+        var headers = try Headers(ascii: [] as [Byte])
         headers.contentType = contentType
         // UTF-8 text may contain bytes > 127, use 8bit encoding
         headers.contentTransferEncoding = .eightBit

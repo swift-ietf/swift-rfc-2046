@@ -9,9 +9,9 @@ extension RFC_2046.BodyPart {
     /// Use `Content(ascii: bytes)` to create from bytes.
     public struct Content: Hashable, Sendable, Codable {
         /// Canonical storage: raw bytes
-        public let rawValue: [UInt8]
+        public let rawValue: [Byte]
 
-        public init(_ bytes: [UInt8]) {
+        public init(_ bytes: [Byte]) {
             self.rawValue = bytes
         }
     }
@@ -28,7 +28,7 @@ extension RFC_2046.BodyPart.Content: Binary.ASCII.Serializable {
     public static func serialize<Buffer: RangeReplaceableCollection>(
         ascii content: Self,
         into buffer: inout Buffer
-    ) where Buffer.Element == UInt8 {
+    ) where Buffer.Element == Byte {
         buffer.append(contentsOf: content.rawValue)
     }
 
@@ -36,12 +36,12 @@ extension RFC_2046.BodyPart.Content: Binary.ASCII.Serializable {
         ascii bytes: Bytes,
         in context: Void = ()
     ) throws(Never)
-    where Bytes.Element == UInt8 {
+    where Bytes.Element == Byte {
         self.init(Array(bytes))
     }
 }
 
-extension [UInt8] {
+extension [Byte] {
     /// Creates bytes from BodyPart.Content
     init(_ content: RFC_2046.BodyPart.Content) {
         self = []

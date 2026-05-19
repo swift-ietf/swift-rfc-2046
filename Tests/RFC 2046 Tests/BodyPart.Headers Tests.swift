@@ -68,7 +68,7 @@ struct `BodyPart.Headers - Initialization` {
 struct `BodyPart.Headers - Parsing from bytes` {
     @Test
     func `Parse empty bytes`() throws {
-        let headers = try RFC_2046.BodyPart.Headers(ascii: [UInt8]())
+        let headers = try RFC_2046.BodyPart.Headers(ascii: [Byte]())
 
         #expect(headers.contentDisposition == nil)
         #expect(headers.contentType == nil)
@@ -78,7 +78,7 @@ struct `BodyPart.Headers - Parsing from bytes` {
 
     @Test
     func `Parse Content-Type header`() throws {
-        let bytes = Array("Content-Type: text/plain; charset=UTF-8".utf8)
+        let bytes = Array<Byte>("Content-Type: text/plain; charset=UTF-8".utf8)
         let headers = try RFC_2046.BodyPart.Headers(ascii: bytes)
 
         #expect(headers.contentType?.type == "text")
@@ -87,7 +87,7 @@ struct `BodyPart.Headers - Parsing from bytes` {
 
     @Test
     func `Parse Content-Disposition header`() throws {
-        let bytes = Array("Content-Disposition: attachment; filename=\"document.pdf\"".utf8)
+        let bytes = Array<Byte>("Content-Disposition: attachment; filename=\"document.pdf\"".utf8)
         let headers = try RFC_2046.BodyPart.Headers(ascii: bytes)
 
         #expect(headers.contentDisposition != nil)
@@ -95,7 +95,7 @@ struct `BodyPart.Headers - Parsing from bytes` {
 
     @Test
     func `Parse Content-Transfer-Encoding header`() throws {
-        let bytes = Array("Content-Transfer-Encoding: base64".utf8)
+        let bytes = Array<Byte>("Content-Transfer-Encoding: base64".utf8)
         let headers = try RFC_2046.BodyPart.Headers(ascii: bytes)
 
         #expect(headers.contentTransferEncoding == .base64)
@@ -105,7 +105,7 @@ struct `BodyPart.Headers - Parsing from bytes` {
     func `Parse all standard headers with CRLF`() throws {
         let headerString =
             "Content-Type: text/plain; charset=UTF-8\r\nContent-Disposition: inline\r\nContent-Transfer-Encoding: 7bit"
-        let bytes = Array(headerString.utf8)
+        let bytes = Array<Byte>(headerString.utf8)
         let headers = try RFC_2046.BodyPart.Headers(ascii: bytes)
 
         #expect(headers.contentType != nil)
@@ -116,7 +116,7 @@ struct `BodyPart.Headers - Parsing from bytes` {
     @Test
     func `Parse custom headers`() throws {
         let headerString = "X-Custom-Header: custom-value\r\nX-Another: another-value"
-        let bytes = Array(headerString.utf8)
+        let bytes = Array<Byte>(headerString.utf8)
         let headers = try RFC_2046.BodyPart.Headers(ascii: bytes)
 
         try #expect(headers[.init("X-Custom-Header")] == "custom-value")
@@ -126,7 +126,7 @@ struct `BodyPart.Headers - Parsing from bytes` {
     @Test
     func `Parse mixed standard and custom headers`() throws {
         let headerString = "Content-Type: text/plain\r\nX-Custom: value"
-        let bytes = Array(headerString.utf8)
+        let bytes = Array<Byte>(headerString.utf8)
         let headers = try RFC_2046.BodyPart.Headers(ascii: bytes)
 
         #expect(headers.contentType != nil)
@@ -135,7 +135,7 @@ struct `BodyPart.Headers - Parsing from bytes` {
 
     @Test
     func `Invalid Content-Type is ignored`() throws {
-        let bytes = Array("Content-Type: invalid syntax".utf8)
+        let bytes = Array<Byte>("Content-Type: invalid syntax".utf8)
         let headers = try RFC_2046.BodyPart.Headers(ascii: bytes)
 
         // Invalid content type should be ignored, not crash
@@ -144,7 +144,7 @@ struct `BodyPart.Headers - Parsing from bytes` {
 
     @Test
     func `Invalid Content-Transfer-Encoding is ignored`() throws {
-        let bytes = Array("Content-Transfer-Encoding: invalid-encoding".utf8)
+        let bytes = Array<Byte>("Content-Transfer-Encoding: invalid-encoding".utf8)
         let headers = try RFC_2046.BodyPart.Headers(ascii: bytes)
 
         #expect(headers.contentTransferEncoding == nil)
@@ -153,14 +153,14 @@ struct `BodyPart.Headers - Parsing from bytes` {
     @Test
     func `Invalid header line without colon throws`() {
         #expect(throws: RFC_2046.BodyPart.Headers.Error.self) {
-            _ = try RFC_2046.BodyPart.Headers(ascii: Array("invalid header line".utf8))
+            _ = try RFC_2046.BodyPart.Headers(ascii: Array<Byte>("invalid header line".utf8))
         }
     }
 
     @Test
     func `Empty header name throws`() {
         #expect(throws: RFC_2046.BodyPart.Headers.Error.self) {
-            _ = try RFC_2046.BodyPart.Headers(ascii: Array(": value".utf8))
+            _ = try RFC_2046.BodyPart.Headers(ascii: Array<Byte>(": value".utf8))
         }
     }
 }
@@ -242,7 +242,7 @@ struct `BodyPart.Headers - Byte serialization` {
     @Test
     func `Empty headers produce empty bytes`() {
         let headers = RFC_2046.BodyPart.Headers()
-        let bytes = [UInt8](headers)
+        let bytes = [Byte](headers)
         #expect(bytes.isEmpty)
     }
 
@@ -251,7 +251,7 @@ struct `BodyPart.Headers - Byte serialization` {
         let headers = RFC_2046.BodyPart.Headers(
             contentType: .textPlainUTF8
         )
-        let bytes = [UInt8](headers)
+        let bytes = [Byte](headers)
         let string = String(decoding: bytes, as: UTF8.self)
 
         #expect(string.contains("Content-Type:"))
@@ -263,7 +263,7 @@ struct `BodyPart.Headers - Byte serialization` {
         let headers = RFC_2046.BodyPart.Headers(
             contentDisposition: .inline()
         )
-        let bytes = [UInt8](headers)
+        let bytes = [Byte](headers)
         let string = String(decoding: bytes, as: UTF8.self)
 
         #expect(string.contains("Content-Disposition:"))
@@ -274,7 +274,7 @@ struct `BodyPart.Headers - Byte serialization` {
         let headers = RFC_2046.BodyPart.Headers(
             contentTransferEncoding: .base64
         )
-        let bytes = [UInt8](headers)
+        let bytes = [Byte](headers)
         let string = String(decoding: bytes, as: UTF8.self)
 
         #expect(string.contains("Content-Transfer-Encoding:"))
@@ -289,7 +289,7 @@ struct `BodyPart.Headers - Byte serialization` {
             contentTransferEncoding: .sevenBit,
             custom: [RFC_5322.Header(name: .init("X-Custom"), value: .init("value"))]
         )
-        let bytes = [UInt8](headers)
+        let bytes = [Byte](headers)
         let string = String(decoding: bytes, as: UTF8.self)
 
         #expect(string.contains("Content-Type:"))
@@ -306,7 +306,7 @@ struct `BodyPart.Headers - Byte serialization` {
                 RFC_5322.Header(name: .init("X-Header-2"), value: .init("value2")),
             ]
         )
-        let bytes = [UInt8](headers)
+        let bytes = [Byte](headers)
         let string = String(decoding: bytes, as: UTF8.self)
 
         #expect(string.contains("X-Header-1:"))
@@ -321,7 +321,7 @@ struct `BodyPart.Headers - Byte serialization` {
             contentType: .textPlainUTF8,
             contentTransferEncoding: .base64
         )
-        let bytes = [UInt8](headers)
+        let bytes = [Byte](headers)
         let string = String(decoding: bytes, as: UTF8.self)
 
         #expect(string.contains("\r\n"))
@@ -338,7 +338,7 @@ struct `BodyPart.Headers - Round-trip serialization` {
             contentType: .textPlainUTF8
         )
 
-        let bytes = [UInt8](original)
+        let bytes = [Byte](original)
         let parsed = try RFC_2046.BodyPart.Headers(ascii: bytes)
 
         #expect(parsed.contentType?.type == "text")
@@ -351,7 +351,7 @@ struct `BodyPart.Headers - Round-trip serialization` {
             contentTransferEncoding: .base64
         )
 
-        let bytes = [UInt8](original)
+        let bytes = [Byte](original)
         let parsed = try RFC_2046.BodyPart.Headers(ascii: bytes)
 
         #expect(parsed.contentTransferEncoding == .base64)
@@ -365,7 +365,7 @@ struct `BodyPart.Headers - Round-trip serialization` {
             ]
         )
 
-        let bytes = [UInt8](original)
+        let bytes = [Byte](original)
         let parsed = try RFC_2046.BodyPart.Headers(ascii: bytes)
 
         #expect(try parsed[.init("X-Custom")] == "value")
@@ -380,7 +380,7 @@ struct `BodyPart.Headers - Round-trip serialization` {
             custom: [RFC_5322.Header(name: .init("X-Custom"), value: .init("value"))]
         )
 
-        let bytes = [UInt8](original)
+        let bytes = [Byte](original)
         let parsed = try RFC_2046.BodyPart.Headers(ascii: bytes)
 
         #expect(parsed.contentDisposition != nil)

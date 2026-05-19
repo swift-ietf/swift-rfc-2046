@@ -69,8 +69,8 @@ extension RFC_2046.Multipart.Subtype: Binary.ASCII.Serializable {
     public static func serialize<Buffer: RangeReplaceableCollection>(
         ascii subtype: Self,
         into buffer: inout Buffer
-    ) where Buffer.Element == UInt8 {
-        buffer.append(contentsOf: subtype.rawValue.utf8)
+    ) where Buffer.Element == Byte {
+        buffer.append(contentsOf: Array<Byte>(subtype.rawValue.utf8))
     }
 
     /// Parses a subtype from canonical byte representation
@@ -81,38 +81,42 @@ extension RFC_2046.Multipart.Subtype: Binary.ASCII.Serializable {
     /// ## Category Theory
     ///
     /// Parsing transformation:
-    /// - **Domain**: [UInt8] (ASCII bytes)
+    /// - **Domain**: [Byte] (ASCII bytes)
     /// - **Codomain**: RFC_2046.Multipart.Subtype (structured data)
     ///
     /// ## Example
     ///
     /// ```swift
-    /// let bytes = Array("alternative".utf8)
+    /// let bytes = Array<Byte>("alternative".utf8)
     /// let subtype = try RFC_2046.Multipart.Subtype(ascii: bytes)
     /// ```
     ///
     /// - Parameter bytes: The ASCII byte representation
     /// - Throws: `RFC_2046.Multipart.Subtype.Error` if empty
     public init<Bytes: Collection>(ascii bytes: Bytes, in context: Void) throws(Error)
-    where Bytes.Element == UInt8 {
+    where Bytes.Element == Byte {
         guard !bytes.isEmpty else {
             throw Error.empty
         }
 
-        // Normalize to lowercase per RFC 2045
-        let lowercased = bytes.ascii.lowercased()
+        // Normalize to lowercase per RFC 2045.
+        // INCITS_4_1986.ASCII helpers are UInt8-keyed; bridge via BSLI
+        // `Array<UInt8>(bytes)` (Byte.Protocol-generic) at this internal
+        // entry boundary, then decode the lowercased UTF-8 to String.
+        let uint8s = Array<UInt8>(bytes)
+        let lowercased = uint8s.ascii.lowercased()
         self.init(__unchecked: (), rawValue: String(decoding: lowercased, as: UTF8.self))
     }
 }
 
-extension [UInt8] {
+extension [Byte] {
     /// Creates ASCII bytes from RFC 2046 Multipart Subtype
     ///
     /// ## Example
     ///
     /// ```swift
     /// let subtype = RFC_2046.Multipart.Subtype.alternative
-    /// let bytes = [UInt8](subtype)
+    /// let bytes = [Byte](subtype)
     /// ```
     ///
     /// - Parameter subtype: The subtype to serialize

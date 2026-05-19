@@ -31,7 +31,7 @@ extension RFC_2046.Boundary {
         case tooLong(_ length: Int)
 
         /// Boundary contains invalid character
-        case invalidCharacter(_ value: String, byte: UInt8, reason: String)
+        case invalidCharacter(_ value: String, code: ASCII.Code, reason: String)
 
         /// Boundary ends with whitespace (forbidden by RFC 2046)
         case endsWithWhitespace(_ value: String)
@@ -48,9 +48,10 @@ extension RFC_2046.Boundary.Error: CustomStringConvertible {
         case .tooLong(let length):
             return
                 "Boundary too long (\(length) characters, max \(RFC_2046.Boundary.Limits.maxLength))"
-        case .invalidCharacter(let value, let byte, let reason):
+        case .invalidCharacter(let value, let code, let reason):
+            // audit: underlying — pending byte-arithmetic decision
             return
-                "Invalid byte 0x\(String(byte, radix: 16, uppercase: true)) in boundary '\(value)': \(reason)"
+                "Invalid byte 0x\(String(code.underlying, radix: 16, uppercase: true)) in boundary '\(value)': \(reason)"
         case .endsWithWhitespace(let value):
             return "Boundary '\(value)' cannot end with whitespace"
         }

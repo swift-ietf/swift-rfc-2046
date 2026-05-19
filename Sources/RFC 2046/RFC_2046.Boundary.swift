@@ -85,21 +85,21 @@ extension RFC_2046.Boundary {
     ///                  "/" / ":" / "=" / "?"
     /// ```
     @inline(always)
-    static func isValidBoundaryCharacter(_ byte: UInt8) -> Bool {
-        byte.ascii.isAlphanumeric
-            || byte == UInt8.ascii.apostrophe  // '
-            || byte == UInt8.ascii.leftParenthesis  // (
-            || byte == UInt8.ascii.rightParenthesis  // )
-            || byte == UInt8.ascii.plusSign  // +
-            || byte == UInt8.ascii.underline  // _
-            || byte == UInt8.ascii.comma  // ,
-            || byte == UInt8.ascii.hyphen  // -
-            || byte == UInt8.ascii.period  // .
-            || byte == UInt8.ascii.solidus  // /
-            || byte == UInt8.ascii.colon  // :
-            || byte == UInt8.ascii.equalsSign  // =
-            || byte == UInt8.ascii.questionMark  // ?
-            || byte == UInt8.ascii.space  // space (allowed except at end)
+    static func isValidBoundaryCharacter(_ code: ASCII.Code) -> Bool {
+        code.isAlphanumeric
+            || code == ASCII.Code.apostrophe  // '
+            || code == ASCII.Code.leftParenthesis  // (
+            || code == ASCII.Code.rightParenthesis  // )
+            || code == ASCII.Code.plusSign  // +
+            || code == ASCII.Code.underline  // _
+            || code == ASCII.Code.comma  // ,
+            || code == ASCII.Code.hyphen  // -
+            || code == ASCII.Code.period  // .
+            || code == ASCII.Code.solidus  // /
+            || code == ASCII.Code.colon  // :
+            || code == ASCII.Code.equalsSign  // =
+            || code == ASCII.Code.questionMark  // ?
+            || code == ASCII.Code.space  // space (allowed except at end)
     }
 }
 
@@ -109,8 +109,8 @@ extension RFC_2046.Boundary: Binary.ASCII.Serializable {
     public static func serialize<Buffer: RangeReplaceableCollection>(
         ascii boundary: Self,
         into buffer: inout Buffer
-    ) where Buffer.Element == UInt8 {
-        buffer.append(contentsOf: boundary.rawValue.utf8)
+    ) where Buffer.Element == Byte {
+        buffer.append(contentsOf: Array<Byte>(boundary.rawValue.utf8))
     }
 
     /// Parses a boundary from canonical byte representation
@@ -128,25 +128,25 @@ extension RFC_2046.Boundary: Binary.ASCII.Serializable {
     /// ## Category Theory
     ///
     /// Parsing transformation:
-    /// - **Domain**: [UInt8] (ASCII bytes)
+    /// - **Domain**: [Byte] (ASCII bytes)
     /// - **Codomain**: RFC_2046.Boundary (structured data)
     ///
     /// String parsing is derived composition:
     /// ```
-    /// String → [UInt8] (UTF-8) → Boundary
+    /// String → [Byte] (UTF-8) → Boundary
     /// ```
     ///
     /// ## Example
     ///
     /// ```swift
-    /// let bytes = Array("----=_Part_12345".utf8)
+    /// let bytes = Array<Byte>("----=_Part_12345".utf8)
     /// let boundary = try RFC_2046.Boundary(ascii: bytes)
     /// ```
     ///
     /// - Parameter bytes: The ASCII byte representation
     /// - Throws: `RFC_2046.Boundary.Error` if validation fails
     public init<Bytes: Collection>(ascii bytes: Bytes, in context: Void) throws(Error)
-    where Bytes.Element == UInt8 {
+    where Bytes.Element == Byte {
         guard !bytes.isEmpty else {
             throw Error.empty
         }
@@ -155,23 +155,27 @@ extension RFC_2046.Boundary: Binary.ASCII.Serializable {
             throw Error.tooLong(bytes.count)
         }
 
-        var lastByte: UInt8 = 0
+        // Type-up: lift to ASCII.Code at the entry boundary so the body
+        // operates on ASCII.Code constants directly (RFC 2046 boundary
+        // grammar is strict ASCII; non-ASCII bytes are fail-state).
+        let codes = Array<ASCII.Code>(bytes)
+        var lastCode: ASCII.Code = 0
 
-        for byte in bytes {
-            lastByte = byte
+        for code in codes {
+            lastCode = code
 
-            guard Self.isValidBoundaryCharacter(byte) else {
+            guard Self.isValidBoundaryCharacter(code) else {
                 let string = String(decoding: bytes, as: UTF8.self)
                 throw Error.invalidCharacter(
                     string,
-                    byte: byte,
+                    code: code,
                     reason: "Only alphanumerics and '()+_,-./:=? are allowed"
                 )
             }
         }
 
         // RFC 2046: boundary must not end with whitespace
-        if lastByte == UInt8.ascii.space {
+        if lastCode == ASCII.Code.space {
             let string = String(decoding: bytes, as: UTF8.self)
             throw Error.endsWithWhitespace(string)
         }
@@ -180,25 +184,25 @@ extension RFC_2046.Boundary: Binary.ASCII.Serializable {
     }
 }
 
-extension [UInt8] {
+extension [Byte] {
     /// Creates ASCII bytes from RFC 2046 Boundary
     ///
     /// ## Category Theory
     ///
     /// Serialization (natural transformation):
     /// - **Domain**: RFC_2046.Boundary (structured data)
-    /// - **Codomain**: [UInt8] (ASCII bytes)
+    /// - **Codomain**: [Byte] (ASCII bytes)
     ///
     /// String representation is derived composition:
     /// ```
-    /// Boundary → [UInt8] (ASCII) → String (UTF-8)
+    /// Boundary → [Byte] (ASCII) → String (UTF-8)
     /// ```
     ///
     /// ## Example
     ///
     /// ```swift
     /// let boundary = try RFC_2046.Boundary("----=_Part_12345")
-    /// let bytes = [UInt8](boundary)
+    /// let bytes = [Byte](boundary)
     /// ```
     ///
     /// - Parameter boundary: The boundary to serialize

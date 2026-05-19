@@ -79,44 +79,59 @@ extension RFC_2046.BodyPart.Headers: Binary.ASCII.Serializable {
     public static func serialize<Buffer: RangeReplaceableCollection>(
         ascii headers: Self,
         into buffer: inout Buffer
-    ) where Buffer.Element == UInt8 {
+    ) where Buffer.Element == Byte {
         // Content-Disposition
         if let contentDisposition = headers.contentDisposition {
-            buffer.append(contentsOf: "Content-Disposition".utf8)
-            buffer.append(.ascii.colon)
-            buffer.append(.ascii.space)
-            RFC_2183.ContentDisposition.serialize(ascii: contentDisposition, into: &buffer)
-            buffer.append(contentsOf: [UInt8].ascii.crlf)
+            buffer.append(contentsOf: Array<Byte>("Content-Disposition".utf8))
+            buffer.append(ASCII.Code.colon)
+            buffer.append(ASCII.Code.space)
+            // Serialize via UInt8 intermediate; non-migrated dep emits UInt8.
+            var u8: [UInt8] = []
+            RFC_2183.ContentDisposition.serialize(ascii: contentDisposition, into: &u8)
+            buffer.append(contentsOf: Array<Byte>(u8))
+            buffer.append(ASCII.Code.cr)
+            buffer.append(ASCII.Code.lf)
         }
 
         // Content-Type
         if let contentType = headers.contentType {
-            buffer.append(contentsOf: "Content-Type".utf8)
-            buffer.append(.ascii.colon)
-            buffer.append(.ascii.space)
-            RFC_2045.ContentType.serialize(ascii: contentType, into: &buffer)
-            buffer.append(contentsOf: [UInt8].ascii.crlf)
+            buffer.append(contentsOf: Array<Byte>("Content-Type".utf8))
+            buffer.append(ASCII.Code.colon)
+            buffer.append(ASCII.Code.space)
+            var u8: [UInt8] = []
+            RFC_2045.ContentType.serialize(ascii: contentType, into: &u8)
+            buffer.append(contentsOf: Array<Byte>(u8))
+            buffer.append(ASCII.Code.cr)
+            buffer.append(ASCII.Code.lf)
         }
 
         // Content-Transfer-Encoding
         if let contentTransferEncoding = headers.contentTransferEncoding {
-            buffer.append(contentsOf: "Content-Transfer-Encoding".utf8)
-            buffer.append(.ascii.colon)
-            buffer.append(.ascii.space)
+            buffer.append(contentsOf: Array<Byte>("Content-Transfer-Encoding".utf8))
+            buffer.append(ASCII.Code.colon)
+            buffer.append(ASCII.Code.space)
+            var u8: [UInt8] = []
             RFC_2045.ContentTransferEncoding.serialize(
                 ascii: contentTransferEncoding,
-                into: &buffer
+                into: &u8
             )
-            buffer.append(contentsOf: [UInt8].ascii.crlf)
+            buffer.append(contentsOf: Array<Byte>(u8))
+            buffer.append(ASCII.Code.cr)
+            buffer.append(ASCII.Code.lf)
         }
 
         // Custom headers
         for header in headers.custom {
-            RFC_5322.Header.Name.serialize(ascii: header.name, into: &buffer)
-            buffer.append(.ascii.colon)
-            buffer.append(.ascii.space)
-            RFC_5322.Header.Value.serialize(ascii: header.value, into: &buffer)
-            buffer.append(contentsOf: [UInt8].ascii.crlf)
+            var u8Name: [UInt8] = []
+            RFC_5322.Header.Name.serialize(ascii: header.name, into: &u8Name)
+            buffer.append(contentsOf: Array<Byte>(u8Name))
+            buffer.append(ASCII.Code.colon)
+            buffer.append(ASCII.Code.space)
+            var u8Value: [UInt8] = []
+            RFC_5322.Header.Value.serialize(ascii: header.value, into: &u8Value)
+            buffer.append(contentsOf: Array<Byte>(u8Value))
+            buffer.append(ASCII.Code.cr)
+            buffer.append(ASCII.Code.lf)
         }
     }
 
@@ -128,27 +143,31 @@ extension RFC_2046.BodyPart.Headers: Binary.ASCII.Serializable {
     /// ## Category Theory
     ///
     /// Parsing transformation composed from canonical parts:
-    /// - `[UInt8] → RFC_5322.Header` (canonical header parsing)
+    /// - `[Byte] → RFC_5322.Header` (canonical header parsing)
     /// - `RFC_5322.Header.Value → RFC_2045.ContentType` (canonical type parsing)
     /// - etc.
     ///
     /// ## Example
     ///
     /// ```swift
-    /// let headerBytes = Array("Content-Type: text/plain\r\n".utf8)
+    /// let headerBytes = Array<Byte>("Content-Type: text/plain\r\n".utf8)
     /// let headers = try RFC_2046.BodyPart.Headers(ascii: headerBytes)
     /// ```
     ///
     /// - Parameter bytes: The ASCII byte representation of headers
     /// - Throws: `RFC_2046.BodyPart.Headers.Error` if parsing fails
     public init<Bytes: Collection>(ascii bytes: Bytes, in context: Void = ()) throws(Error)
-    where Bytes.Element == UInt8 {
+    where Bytes.Element == Byte {
         var contentDisposition: RFC_2183.ContentDisposition?
         var contentType: RFC_2045.ContentType?
         var contentTransferEncoding: RFC_2045.ContentTransferEncoding?
         var customHeaders: [RFC_5322.Header] = []
 
-        let byteArray = Array(bytes)
+        // INCITS_4_1986.ASCII.lineRanges is UInt8-keyed; bridge once at the
+        // entry boundary via BSLI `Array<UInt8>(bytes)` and operate on the
+        // UInt8 buffer for the line-range scan and dep calls (RFC_5322 /
+        // RFC_2045 / RFC_2183 conformances are still UInt8-substrate).
+        let byteArray = Array<UInt8>(bytes)
         let lineRanges = byteArray.ascii.lineRanges()
 
         for range in lineRanges {
@@ -187,7 +206,7 @@ extension RFC_2046.BodyPart.Headers: Binary.ASCII.Serializable {
     }
 }
 
-extension [UInt8] {
+extension [Byte] {
     /// Creates ASCII bytes from RFC 2046 BodyPart Headers
     ///
     /// Serializes headers as RFC 5322 header lines (name: value CRLF).
@@ -196,7 +215,7 @@ extension [UInt8] {
     ///
     /// Serialization (natural transformation):
     /// - **Domain**: RFC_2046.BodyPart.Headers (structured data)
-    /// - **Codomain**: [UInt8] (ASCII bytes)
+    /// - **Codomain**: [Byte] (ASCII bytes)
     ///
     /// ## Example
     ///
@@ -204,7 +223,7 @@ extension [UInt8] {
     /// let headers = RFC_2046.BodyPart.Headers(
     ///     contentType: .textPlainUTF8
     /// )
-    /// let bytes = [UInt8](headers)
+    /// let bytes = [Byte](headers)
     /// ```
     ///
     /// - Parameter headers: The headers to serialize
@@ -219,40 +238,47 @@ extension [UInt8] {
         estimatedSize += headers.custom.count * 50
         reserveCapacity(estimatedSize)
 
+        // Direct UInt8 serialization, then bridge to [Byte] in one shot.
+        // Dep types (RFC_2183, RFC_2045, RFC_5322) still emit UInt8 buffers.
+        var u8: [UInt8] = []
+        u8.reserveCapacity(estimatedSize)
+
         let crlf: [UInt8] = .ascii.crlf
         let colonSpace: [UInt8] = [.ascii.colon, .ascii.space]
 
         // Content-Disposition
         if let contentDisposition = headers.contentDisposition {
-            append(contentsOf: [UInt8](RFC_2183.ContentDisposition.self))
-            append(contentsOf: colonSpace)
-            append(contentsOf: [UInt8](contentDisposition))
-            append(contentsOf: crlf)
+            u8.append(contentsOf: [UInt8](RFC_2183.ContentDisposition.self))
+            u8.append(contentsOf: colonSpace)
+            u8.append(contentsOf: [UInt8](contentDisposition))
+            u8.append(contentsOf: crlf)
         }
 
         // Content-Type
         if let contentType = headers.contentType {
-            append(contentsOf: [UInt8](RFC_2045.ContentType.self))
-            append(contentsOf: colonSpace)
-            append(contentsOf: [UInt8](contentType))
-            append(contentsOf: crlf)
+            u8.append(contentsOf: [UInt8](RFC_2045.ContentType.self))
+            u8.append(contentsOf: colonSpace)
+            u8.append(contentsOf: [UInt8](contentType))
+            u8.append(contentsOf: crlf)
         }
 
         // Content-Transfer-Encoding
         if let contentTransferEncoding = headers.contentTransferEncoding {
-            append(contentsOf: [UInt8](RFC_2045.ContentTransferEncoding.self))
-            append(contentsOf: colonSpace)
-            append(contentsOf: [UInt8](contentTransferEncoding))
-            append(contentsOf: crlf)
+            u8.append(contentsOf: [UInt8](RFC_2045.ContentTransferEncoding.self))
+            u8.append(contentsOf: colonSpace)
+            u8.append(contentsOf: [UInt8](contentTransferEncoding))
+            u8.append(contentsOf: crlf)
         }
 
         // Custom headers
         for header in headers.custom {
-            append(contentsOf: [UInt8](header.name))
-            append(contentsOf: colonSpace)
-            append(contentsOf: [UInt8](header.value))
-            append(contentsOf: crlf)
+            u8.append(contentsOf: [UInt8](header.name))
+            u8.append(contentsOf: colonSpace)
+            u8.append(contentsOf: [UInt8](header.value))
+            u8.append(contentsOf: crlf)
         }
+
+        self = Array<Byte>(u8)
     }
 }
 

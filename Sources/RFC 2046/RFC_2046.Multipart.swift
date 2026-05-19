@@ -186,7 +186,7 @@ extension RFC_2046.Multipart {
     ///
     /// ## Category Theory
     ///
-    /// Context-dependent parsing: `(Context, [UInt8]) → Multipart`
+    /// Context-dependent parsing: `(Context, [Byte]) → Multipart`
     ///
     /// The same raw bytes can represent different multipart structures
     /// depending on the boundary delimiter in the context.
@@ -233,17 +233,18 @@ extension RFC_2046.Multipart: Binary.ASCII.Serializable {
     public static func serialize<Buffer: RangeReplaceableCollection>(
         ascii multipart: Self,
         into buffer: inout Buffer
-    ) where Buffer.Element == UInt8 {
-        let crlf: [UInt8] = .ascii.crlf
-        let boundaryPrefix: [UInt8] = [.ascii.hyphen, .ascii.hyphen]
-        var boundaryBytes: [UInt8] = []
+    ) where Buffer.Element == Byte {
+        let boundaryPrefix: [Byte] = [ASCII.Code.hyphen, ASCII.Code.hyphen]
+        var boundaryBytes: [Byte] = []
         RFC_2046.Boundary.serialize(ascii: multipart.boundary, into: &boundaryBytes)
 
         // Preamble (optional)
         if let preamble = multipart.preamble {
-            buffer.append(contentsOf: preamble.utf8)
-            buffer.append(contentsOf: crlf)
-            buffer.append(contentsOf: crlf)
+            buffer.append(contentsOf: Array<Byte>(preamble.utf8))
+            buffer.append(ASCII.Code.cr)
+            buffer.append(ASCII.Code.lf)
+            buffer.append(ASCII.Code.cr)
+            buffer.append(ASCII.Code.lf)
         }
 
         // Body parts
@@ -251,20 +252,25 @@ extension RFC_2046.Multipart: Binary.ASCII.Serializable {
             // Boundary delimiter
             buffer.append(contentsOf: boundaryPrefix)
             buffer.append(contentsOf: boundaryBytes)
-            buffer.append(contentsOf: crlf)
+            buffer.append(ASCII.Code.cr)
+            buffer.append(ASCII.Code.lf)
 
-            // Headers (using byte serialization)
+            // Headers (using byte serialization) — migrated to Byte substrate.
             RFC_2046.BodyPart.Headers.serialize(ascii: part.headers, into: &buffer)
 
             // Blank line between headers and content
-            buffer.append(contentsOf: crlf)
+            buffer.append(ASCII.Code.cr)
+            buffer.append(ASCII.Code.lf)
 
-            // Content with encoding applied (may be binary)
-            let contentBytes = [UInt8](part.content)
+            // Content with encoding applied (may be binary).
+            // BodyPart.Content storage is [Byte]; RFC_4648.Base64.encode is
+            // UInt8-substrate (not migrated), so bridge once.
+            let contentBytes: [Byte] = part.content.rawValue
             if let encoding = part.transferEncoding {
                 switch encoding {
                 case .base64:
-                    buffer.append(contentsOf: RFC_4648.Base64.encode(contentBytes))
+                    let u8 = Array<UInt8>(contentBytes)
+                    buffer.append(contentsOf: Array<Byte>(RFC_4648.Base64.encode(u8)))
                 case .quotedPrintable:
                     // Quoted-printable encoding not yet implemented; use raw content
                     buffer.append(contentsOf: contentBytes)
@@ -276,19 +282,22 @@ extension RFC_2046.Multipart: Binary.ASCII.Serializable {
                 // No encoding specified: use raw content
                 buffer.append(contentsOf: contentBytes)
             }
-            buffer.append(contentsOf: crlf)
+            buffer.append(ASCII.Code.cr)
+            buffer.append(ASCII.Code.lf)
         }
 
         // Final boundary
         buffer.append(contentsOf: boundaryPrefix)
         buffer.append(contentsOf: boundaryBytes)
         buffer.append(contentsOf: boundaryPrefix)  // "--" suffix for final
-        buffer.append(contentsOf: crlf)
+        buffer.append(ASCII.Code.cr)
+        buffer.append(ASCII.Code.lf)
 
         // Epilogue (optional)
         if let epilogue = multipart.epilogue {
-            buffer.append(contentsOf: epilogue.utf8)
-            buffer.append(contentsOf: crlf)
+            buffer.append(contentsOf: Array<Byte>(epilogue.utf8))
+            buffer.append(ASCII.Code.cr)
+            buffer.append(ASCII.Code.lf)
         }
     }
 
@@ -300,7 +309,7 @@ extension RFC_2046.Multipart: Binary.ASCII.Serializable {
     /// ## Category Theory
     ///
     /// This is the fundamental parsing transformation:
-    /// - **Domain**: (Context, [UInt8]) where Context provides boundary
+    /// - **Domain**: (Context, [Byte]) where Context provides boundary
     /// - **Codomain**: RFC_2046.Multipart (structured data)
     ///
     /// Context provides the boundary delimiter required to split parts.
@@ -321,9 +330,13 @@ extension RFC_2046.Multipart: Binary.ASCII.Serializable {
     ///   - context: Parsing context containing boundary and subtype
     /// - Throws: `RFC_2046.Multipart.Error` if parsing fails
     public init<Bytes: Collection>(ascii bytes: Bytes, in context: Context) throws(Error)
-    where Bytes.Element == UInt8 {
-        // Build boundary delimiters as bytes (with reserveCapacity to avoid reallocations)
-        let boundaryBytes = [UInt8](context.boundary)
+    where Bytes.Element == Byte {
+        // INCITS_4_1986.ASCII.lineRanges is UInt8-keyed; the line-range scan
+        // operates on the UInt8 buffer end-to-end. Migrated BodyPart.Headers
+        // accepts [Byte], so we bridge to [Byte] only for the Headers(ascii:)
+        // call and Content storage.
+        let boundaryBytesByte: [Byte] = [Byte](context.boundary)
+        let boundaryBytes = Array<UInt8>(boundaryBytesByte)
 
         var delimiter: [UInt8] = []
         delimiter.reserveCapacity(2 + boundaryBytes.count)
@@ -342,7 +355,7 @@ extension RFC_2046.Multipart: Binary.ASCII.Serializable {
         var epilogueBytes: [UInt8]?
 
         // Use lineRanges() for zero-copy line access, then copy only what we need
-        let byteArray = Array(bytes)
+        let byteArray = Array<UInt8>(bytes)
         let lineRanges = byteArray.ascii.lineRanges(estimatedLineCount: byteArray.count / 40)
 
         var preambleLines: [[UInt8]] = []
@@ -361,8 +374,8 @@ extension RFC_2046.Multipart: Binary.ASCII.Serializable {
                 // Start of new part
                 if inPart {
                     // Save previous part using efficient joined()
-                    let headerBytes = partHeaderLines.joined(separator: crlf)
-                    let contentBytes = partContentLines.joined(separator: crlf)
+                    let headerBytes = Array<Byte>(partHeaderLines.joined(separator: crlf))
+                    let contentBytes = Array<Byte>(partContentLines.joined(separator: crlf))
                     let headers: RFC_2046.BodyPart.Headers
                     do {
                         headers = try RFC_2046.BodyPart.Headers(ascii: headerBytes)
@@ -388,8 +401,8 @@ extension RFC_2046.Multipart: Binary.ASCII.Serializable {
             } else if lineSlice.elementsEqual(finalDelimiter) {
                 // End of multipart
                 if inPart {
-                    let headerBytes = partHeaderLines.joined(separator: crlf)
-                    let contentBytes = partContentLines.joined(separator: crlf)
+                    let headerBytes = Array<Byte>(partHeaderLines.joined(separator: crlf))
+                    let contentBytes = Array<Byte>(partContentLines.joined(separator: crlf))
                     let headers: RFC_2046.BodyPart.Headers
                     do {
                         headers = try RFC_2046.BodyPart.Headers(ascii: headerBytes)
