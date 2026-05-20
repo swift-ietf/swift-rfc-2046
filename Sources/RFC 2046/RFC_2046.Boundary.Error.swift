@@ -49,7 +49,6 @@ extension RFC_2046.Boundary.Error: CustomStringConvertible {
             return
                 "Boundary too long (\(length) characters, max \(RFC_2046.Boundary.Limits.maxLength))"
         case .invalidCharacter(let value, let code, let reason):
-            // audit: underlying — pending byte-arithmetic decision
             return
                 "Invalid byte 0x\(String(code.underlying, radix: 16, uppercase: true)) in boundary '\(value)': \(reason)"
         case .endsWithWhitespace(let value):
