@@ -365,7 +365,7 @@ extension RFC_2046.Multipart: Binary.ASCII.Serializable {
         var partContentLines: [[UInt8]] = []
         var inHeaders = true
 
-        let crlf: [UInt8] = .ascii.crlf
+        let crlf: [UInt8] = Array("\r\n".utf8)
 
         for range in lineRanges {
             let lineSlice = byteArray[range]

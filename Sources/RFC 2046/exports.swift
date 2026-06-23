@@ -14,5 +14,4 @@
 // exports.swift
 // swift-rfc-2046
 
-@_exported public import ASCII
 @_exported public import RFC_2045

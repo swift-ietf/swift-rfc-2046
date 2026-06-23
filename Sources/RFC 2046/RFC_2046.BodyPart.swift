@@ -1,3 +1,4 @@
+import Byte_Collection_Primitives_Standard_Library_Integration
 import INCITS_4_1986
 import RFC_4648
 public import RFC_5322

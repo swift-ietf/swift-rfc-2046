@@ -16,6 +16,10 @@
 
 import INCITS_4_1986
 
+// `Code` aliases ASCII.Code at file scope — avoids the INCITS `[ASCII.Code].ASCII`
+// shadow inside the `extension [Byte]` below.
+private typealias Code = ASCII.Code
+
 extension RFC_2046 {
     /// A validated multipart boundary delimiter per RFC 2046 Section 5.1.1
     ///
@@ -87,19 +91,19 @@ extension RFC_2046.Boundary {
     @inline(always)
     static func isValidBoundaryCharacter(_ code: ASCII.Code) -> Bool {
         code.isAlphanumeric
-            || code == ASCII.Code.apostrophe  // '
-            || code == ASCII.Code.leftParenthesis  // (
-            || code == ASCII.Code.rightParenthesis  // )
-            || code == ASCII.Code.plusSign  // +
-            || code == ASCII.Code.underline  // _
-            || code == ASCII.Code.comma  // ,
-            || code == ASCII.Code.hyphen  // -
-            || code == ASCII.Code.period  // .
-            || code == ASCII.Code.solidus  // /
-            || code == ASCII.Code.colon  // :
-            || code == ASCII.Code.equalsSign  // =
-            || code == ASCII.Code.questionMark  // ?
-            || code == ASCII.Code.space  // space (allowed except at end)
+            || code == Code.apostrophe  // '
+            || code == Code.leftParenthesis  // (
+            || code == Code.rightParenthesis  // )
+            || code == Code.plusSign  // +
+            || code == Code.underline  // _
+            || code == Code.comma  // ,
+            || code == Code.hyphen  // -
+            || code == Code.period  // .
+            || code == Code.solidus  // /
+            || code == Code.colon  // :
+            || code == Code.equalsSign  // =
+            || code == Code.questionMark  // ?
+            || code == Code.space  // space (allowed except at end)
     }
 }
 
@@ -175,7 +179,7 @@ extension RFC_2046.Boundary: Binary.ASCII.Serializable {
         }
 
         // RFC 2046: boundary must not end with whitespace
-        if lastCode == ASCII.Code.space {
+        if lastCode == Code.space {
             let string = String(decoding: bytes, as: UTF8.self)
             throw Error.endsWithWhitespace(string)
         }

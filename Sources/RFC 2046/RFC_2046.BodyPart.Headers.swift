@@ -19,6 +19,10 @@ public import RFC_2045
 public import RFC_2183
 public import RFC_5322
 
+// `Code` aliases ASCII.Code at file scope — avoids the INCITS `[ASCII.Code].ASCII`
+// shadow inside the `extension [Byte]` below.
+private typealias Code = ASCII.Code
+
 extension RFC_2046.BodyPart {
     /// Type-safe headers for multipart body parts
     ///
@@ -83,41 +87,41 @@ extension RFC_2046.BodyPart.Headers: Binary.ASCII.Serializable {
         // Content-Disposition
         if let contentDisposition = headers.contentDisposition {
             buffer.append(contentsOf: Array<Byte>("Content-Disposition".utf8))
-            buffer.append(ASCII.Code.colon)
-            buffer.append(ASCII.Code.space)
+            buffer.append(Code.colon)
+            buffer.append(Code.space)
             // Serialize via UInt8 intermediate; non-migrated dep emits UInt8.
             var u8: [UInt8] = []
             RFC_2183.ContentDisposition.serialize(ascii: contentDisposition, into: &u8)
             buffer.append(contentsOf: Array<Byte>(u8))
-            buffer.append(ASCII.Code.cr)
-            buffer.append(ASCII.Code.lf)
+            buffer.append(Code.cr)
+            buffer.append(Code.lf)
         }
 
         // Content-Type
         if let contentType = headers.contentType {
             buffer.append(contentsOf: Array<Byte>("Content-Type".utf8))
-            buffer.append(ASCII.Code.colon)
-            buffer.append(ASCII.Code.space)
+            buffer.append(Code.colon)
+            buffer.append(Code.space)
             var u8: [UInt8] = []
             RFC_2045.ContentType.serialize(ascii: contentType, into: &u8)
             buffer.append(contentsOf: Array<Byte>(u8))
-            buffer.append(ASCII.Code.cr)
-            buffer.append(ASCII.Code.lf)
+            buffer.append(Code.cr)
+            buffer.append(Code.lf)
         }
 
         // Content-Transfer-Encoding
         if let contentTransferEncoding = headers.contentTransferEncoding {
             buffer.append(contentsOf: Array<Byte>("Content-Transfer-Encoding".utf8))
-            buffer.append(ASCII.Code.colon)
-            buffer.append(ASCII.Code.space)
+            buffer.append(Code.colon)
+            buffer.append(Code.space)
             var u8: [UInt8] = []
             RFC_2045.ContentTransferEncoding.serialize(
                 ascii: contentTransferEncoding,
                 into: &u8
             )
             buffer.append(contentsOf: Array<Byte>(u8))
-            buffer.append(ASCII.Code.cr)
-            buffer.append(ASCII.Code.lf)
+            buffer.append(Code.cr)
+            buffer.append(Code.lf)
         }
 
         // Custom headers
@@ -125,13 +129,13 @@ extension RFC_2046.BodyPart.Headers: Binary.ASCII.Serializable {
             var u8Name: [UInt8] = []
             RFC_5322.Header.Name.serialize(ascii: header.name, into: &u8Name)
             buffer.append(contentsOf: Array<Byte>(u8Name))
-            buffer.append(ASCII.Code.colon)
-            buffer.append(ASCII.Code.space)
+            buffer.append(Code.colon)
+            buffer.append(Code.space)
             var u8Value: [UInt8] = []
             RFC_5322.Header.Value.serialize(ascii: header.value, into: &u8Value)
             buffer.append(contentsOf: Array<Byte>(u8Value))
-            buffer.append(ASCII.Code.cr)
-            buffer.append(ASCII.Code.lf)
+            buffer.append(Code.cr)
+            buffer.append(Code.lf)
         }
     }
 
@@ -243,7 +247,7 @@ extension [Byte] {
         var u8: [UInt8] = []
         u8.reserveCapacity(estimatedSize)
 
-        let crlf: [UInt8] = .ascii.crlf
+        let crlf: [UInt8] = Array("\r\n".utf8)
         let colonSpace: [UInt8] = [.ascii.colon, .ascii.space]
 
         // Content-Disposition
@@ -361,15 +365,15 @@ extension RFC_2046.BodyPart.Headers {
             switch headerName {
             case .contentDisposition:
                 contentDisposition = newValue.flatMap {
-                    try? RFC_2183.ContentDisposition(ascii: $0.utf8)
+                    try? RFC_2183.ContentDisposition(ascii: Array<Byte>($0.utf8))
                 }
             case .contentType:
                 contentType = newValue.flatMap {
-                    try? RFC_2045.ContentType(ascii: $0.utf8)
+                    try? RFC_2045.ContentType(ascii: Array<Byte>($0.utf8))
                 }
             case .contentTransferEncoding:
                 contentTransferEncoding = newValue.flatMap {
-                    try? RFC_2045.ContentTransferEncoding(ascii: $0.utf8)
+                    try? RFC_2045.ContentTransferEncoding(ascii: Array<Byte>($0.utf8))
                 }
             default:
                 custom[headerName] = newValue
