@@ -162,7 +162,12 @@ extension RFC_2046.Boundary: Binary.ASCII.Serializable {
         // Type-up: lift to ASCII.Code at the entry boundary so the body
         // operates on ASCII.Code constants directly (RFC 2046 boundary
         // grammar is strict ASCII; non-ASCII bytes are fail-state).
-        let codes = Array<ASCII.Code>(bytes)
+        let codes: [ASCII.Code]
+        do {
+            codes = try Array<ASCII.Code>(bytes)
+        } catch {
+            throw Error.notASCII(String(decoding: bytes, as: UTF8.self))
+        }
         var lastCode: ASCII.Code = 0
 
         for code in codes {

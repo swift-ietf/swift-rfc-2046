@@ -99,13 +99,12 @@ extension RFC_2046.Multipart.Subtype: Binary.ASCII.Serializable {
             throw Error.empty
         }
 
-        // Normalize to lowercase per RFC 2045.
-        // INCITS_4_1986.ASCII helpers are UInt8-keyed; bridge via BSLI
-        // `Array<UInt8>(bytes)` (Byte.Protocol-generic) at this internal
-        // entry boundary, then decode the lowercased UTF-8 to String.
-        let uint8s = Array<UInt8>(bytes)
-        let lowercased = uint8s.ascii.lowercased()
-        self.init(__unchecked: (), rawValue: String(decoding: lowercased, as: UTF8.self))
+        // Normalize to lowercase per RFC 2045 (subtypes are ASCII tokens, so
+        // Unicode-default case folding is byte-identical to ASCII lowercasing).
+        self.init(
+            __unchecked: (),
+            rawValue: String(decoding: bytes, as: UTF8.self).lowercased()
+        )
     }
 }
 

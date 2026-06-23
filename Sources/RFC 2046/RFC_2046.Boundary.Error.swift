@@ -35,6 +35,9 @@ extension RFC_2046.Boundary {
 
         /// Boundary ends with whitespace (forbidden by RFC 2046)
         case endsWithWhitespace(_ value: String)
+
+        /// Boundary contains a non-ASCII byte (RFC 2046 boundaries are ASCII-only)
+        case notASCII(_ value: String)
     }
 }
 
@@ -53,6 +56,8 @@ extension RFC_2046.Boundary.Error: CustomStringConvertible {
                 "Invalid byte 0x\(String(code.underlying, radix: 16, uppercase: true)) in boundary '\(value)': \(reason)"
         case .endsWithWhitespace(let value):
             return "Boundary '\(value)' cannot end with whitespace"
+        case .notASCII(let value):
+            return "Boundary '\(value)' contains a non-ASCII byte"
         }
     }
 }
