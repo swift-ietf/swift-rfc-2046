@@ -84,56 +84,40 @@ extension RFC_2046.BodyPart.Headers: Binary.ASCII.Serializable {
         ascii headers: Self,
         into buffer: inout Buffer
     ) where Buffer.Element == Byte {
-        // Content-Disposition
+        // Each dependency serialises straight into the Byte buffer; ASCII codes
+        // append via Binary.ASCII.Serializable. No UInt8 intermediates.
         if let contentDisposition = headers.contentDisposition {
             buffer.append(contentsOf: Array<Byte>("Content-Disposition".utf8))
             buffer.append(Code.colon)
             buffer.append(Code.space)
-            // Serialize via UInt8 intermediate; non-migrated dep emits UInt8.
-            var u8: [UInt8] = []
-            RFC_2183.ContentDisposition.serialize(ascii: contentDisposition, into: &u8)
-            buffer.append(contentsOf: Array<Byte>(u8))
+            RFC_2183.ContentDisposition.serialize(ascii: contentDisposition, into: &buffer)
             buffer.append(Code.cr)
             buffer.append(Code.lf)
         }
 
-        // Content-Type
         if let contentType = headers.contentType {
             buffer.append(contentsOf: Array<Byte>("Content-Type".utf8))
             buffer.append(Code.colon)
             buffer.append(Code.space)
-            var u8: [UInt8] = []
-            RFC_2045.ContentType.serialize(ascii: contentType, into: &u8)
-            buffer.append(contentsOf: Array<Byte>(u8))
+            RFC_2045.ContentType.serialize(ascii: contentType, into: &buffer)
             buffer.append(Code.cr)
             buffer.append(Code.lf)
         }
 
-        // Content-Transfer-Encoding
         if let contentTransferEncoding = headers.contentTransferEncoding {
             buffer.append(contentsOf: Array<Byte>("Content-Transfer-Encoding".utf8))
             buffer.append(Code.colon)
             buffer.append(Code.space)
-            var u8: [UInt8] = []
-            RFC_2045.ContentTransferEncoding.serialize(
-                ascii: contentTransferEncoding,
-                into: &u8
-            )
-            buffer.append(contentsOf: Array<Byte>(u8))
+            RFC_2045.ContentTransferEncoding.serialize(ascii: contentTransferEncoding, into: &buffer)
             buffer.append(Code.cr)
             buffer.append(Code.lf)
         }
 
-        // Custom headers
         for header in headers.custom {
-            var u8Name: [UInt8] = []
-            RFC_5322.Header.Name.serialize(ascii: header.name, into: &u8Name)
-            buffer.append(contentsOf: Array<Byte>(u8Name))
+            RFC_5322.Header.Name.serialize(ascii: header.name, into: &buffer)
             buffer.append(Code.colon)
             buffer.append(Code.space)
-            var u8Value: [UInt8] = []
-            RFC_5322.Header.Value.serialize(ascii: header.value, into: &u8Value)
-            buffer.append(contentsOf: Array<Byte>(u8Value))
+            RFC_5322.Header.Value.serialize(ascii: header.value, into: &buffer)
             buffer.append(Code.cr)
             buffer.append(Code.lf)
         }
@@ -167,23 +151,14 @@ extension RFC_2046.BodyPart.Headers: Binary.ASCII.Serializable {
         var contentTransferEncoding: RFC_2045.ContentTransferEncoding?
         var customHeaders: [RFC_5322.Header] = []
 
-        // INCITS_4_1986.ASCII.lineRanges is UInt8-keyed; bridge once at the
-        // entry boundary via BSLI `Array<UInt8>(bytes)` and operate on the
-        // UInt8 buffer for the line-range scan and dep calls (RFC_5322 /
-        // RFC_2045 / RFC_2183 conformances are still UInt8-substrate).
-        let byteArray = Array<UInt8>(bytes)
-        let lineRanges = byteArray.ascii.lineRanges()
-
-        for range in lineRanges {
-            let lineBytes = Array(byteArray[range])
-            guard !lineBytes.isEmpty else { continue }
-
+        // Split header bytes into RFC 5322 header lines (CR / LF / CRLF).
+        for line in RFC_2046.lines(of: Array(bytes)) where !line.isEmpty {
             // Parse line as RFC_5322.Header using canonical transformation
             let header: RFC_5322.Header
             do {
-                header = try RFC_5322.Header(ascii: lineBytes)
+                header = try RFC_5322.Header(ascii: line)
             } catch {
-                throw Error.invalidHeaderLine(String(decoding: lineBytes, as: UTF8.self))
+                throw Error.invalidHeaderLine(String(decoding: line, as: UTF8.self))
             }
 
             // Dispatch based on header name, using canonical parsers

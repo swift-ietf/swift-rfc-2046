@@ -234,7 +234,7 @@ extension RFC_2046.Multipart: Binary.ASCII.Serializable {
         ascii multipart: Self,
         into buffer: inout Buffer
     ) where Buffer.Element == Byte {
-        let boundaryPrefix: [Byte] = [ASCII.Code.hyphen, ASCII.Code.hyphen]
+        let boundaryPrefix: [Byte] = [ASCII.Code.hyphen.byte, ASCII.Code.hyphen.byte]
         var boundaryBytes: [Byte] = []
         RFC_2046.Boundary.serialize(ascii: multipart.boundary, into: &boundaryBytes)
 
@@ -263,14 +263,12 @@ extension RFC_2046.Multipart: Binary.ASCII.Serializable {
             buffer.append(ASCII.Code.lf)
 
             // Content with encoding applied (may be binary).
-            // BodyPart.Content storage is [Byte]; RFC_4648.Base64.encode is
-            // UInt8-substrate (not migrated), so bridge once.
             let contentBytes: [Byte] = part.content.rawValue
             if let encoding = part.transferEncoding {
                 switch encoding {
                 case .base64:
-                    let u8 = Array<UInt8>(contentBytes)
-                    buffer.append(contentsOf: Array<Byte>(RFC_4648.Base64.encode(u8)))
+                    // Base64.encode takes [Byte] and returns [ASCII.Code]; bridge codes to bytes.
+                    buffer.append(contentsOf: RFC_4648.Base64.encode(contentBytes).map(\.byte))
                 case .quotedPrintable:
                     // Quoted-printable encoding not yet implemented; use raw content
                     buffer.append(contentsOf: contentBytes)
@@ -331,45 +329,36 @@ extension RFC_2046.Multipart: Binary.ASCII.Serializable {
     /// - Throws: `RFC_2046.Multipart.Error` if parsing fails
     public init<Bytes: Collection>(ascii bytes: Bytes, in context: Context) throws(Error)
     where Bytes.Element == Byte {
-        // INCITS_4_1986.ASCII.lineRanges is UInt8-keyed; the line-range scan
-        // operates on the UInt8 buffer end-to-end. Migrated BodyPart.Headers
-        // accepts [Byte], so we bridge to [Byte] only for the Headers(ascii:)
-        // call and Content storage.
-        let boundaryBytesByte: [Byte] = [Byte](context.boundary)
-        let boundaryBytes = Array<UInt8>(boundaryBytesByte)
+        // MIME delimiters: "--boundary" and the closing "--boundary--". ASCII
+        // codes append into the [Byte] buffer via Binary.ASCII.Serializable.
+        let boundaryBytes: [Byte] = [Byte](context.boundary)
 
-        var delimiter: [UInt8] = []
+        var delimiter: [Byte] = []
         delimiter.reserveCapacity(2 + boundaryBytes.count)
-        delimiter.append(.ascii.hyphen)
-        delimiter.append(.ascii.hyphen)
+        delimiter.append(ASCII.Code.hyphen)
+        delimiter.append(ASCII.Code.hyphen)
         delimiter.append(contentsOf: boundaryBytes)
 
-        var finalDelimiter: [UInt8] = []
+        var finalDelimiter: [Byte] = []
         finalDelimiter.reserveCapacity(delimiter.count + 2)
         finalDelimiter.append(contentsOf: delimiter)
-        finalDelimiter.append(.ascii.hyphen)
-        finalDelimiter.append(.ascii.hyphen)
+        finalDelimiter.append(ASCII.Code.hyphen)
+        finalDelimiter.append(ASCII.Code.hyphen)
 
         var parts: [RFC_2046.BodyPart] = []
-        var preambleBytes: [UInt8]?
-        var epilogueBytes: [UInt8]?
+        var preambleBytes: [Byte]?
+        var epilogueBytes: [Byte]?
 
-        // Use lineRanges() for zero-copy line access, then copy only what we need
-        let byteArray = Array<UInt8>(bytes)
-        let lineRanges = byteArray.ascii.lineRanges(estimatedLineCount: byteArray.count / 40)
-
-        var preambleLines: [[UInt8]] = []
+        var preambleLines: [[Byte]] = []
         var inPreamble = true
         var inPart = false
-        var partHeaderLines: [[UInt8]] = []
-        var partContentLines: [[UInt8]] = []
+        var partHeaderLines: [[Byte]] = []
+        var partContentLines: [[Byte]] = []
         var inHeaders = true
 
-        let crlf: [UInt8] = Array("\r\n".utf8)
+        let crlf: [Byte] = [ASCII.Code.cr.byte, ASCII.Code.lf.byte]
 
-        for range in lineRanges {
-            let lineSlice = byteArray[range]
-
+        for lineSlice in RFC_2046.lines(of: Array(bytes)) {
             if lineSlice.elementsEqual(delimiter) {
                 // Start of new part
                 if inPart {
@@ -391,7 +380,7 @@ extension RFC_2046.Multipart: Binary.ASCII.Serializable {
                 }
                 if inPreamble {
                     preambleBytes =
-                        preambleLines.isEmpty ? nil : preambleLines.joined(separator: crlf)
+                        preambleLines.isEmpty ? nil : Array(preambleLines.joined(separator: crlf))
                     inPreamble = false
                 }
                 inPart = true
