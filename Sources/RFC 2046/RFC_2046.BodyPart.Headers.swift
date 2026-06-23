@@ -187,7 +187,7 @@ extension RFC_2046.BodyPart.Headers: Binary.ASCII.Serializable {
             }
 
             // Dispatch based on header name, using canonical parsers
-            let valueBytes = [UInt8](header.value)
+            let valueBytes = [Byte](header.value)
 
             switch header.name {
             case .contentDisposition:
@@ -242,47 +242,47 @@ extension [Byte] {
         estimatedSize += headers.custom.count * 50
         reserveCapacity(estimatedSize)
 
-        // Direct UInt8 serialization, then bridge to [Byte] in one shot.
-        // Dep types (RFC_2183, RFC_2045, RFC_5322) still emit UInt8 buffers.
-        var u8: [UInt8] = []
+        // Build the header block directly in the Byte domain — the dependency
+        // serialize inits and the header name/value serializers all emit [Byte].
+        var u8: [Byte] = []
         u8.reserveCapacity(estimatedSize)
 
-        let crlf: [UInt8] = Array("\r\n".utf8)
-        let colonSpace: [UInt8] = [.ascii.colon, .ascii.space]
+        let crlf: [Byte] = Array<Byte>("\r\n".utf8)
+        let colonSpace: [Byte] = [Code.colon.byte, Code.space.byte]
 
         // Content-Disposition
         if let contentDisposition = headers.contentDisposition {
-            u8.append(contentsOf: [UInt8](RFC_2183.ContentDisposition.self))
+            u8.append(contentsOf: [Byte](RFC_2183.ContentDisposition.self))
             u8.append(contentsOf: colonSpace)
-            u8.append(contentsOf: [UInt8](contentDisposition))
+            u8.append(contentsOf: [Byte](contentDisposition))
             u8.append(contentsOf: crlf)
         }
 
         // Content-Type
         if let contentType = headers.contentType {
-            u8.append(contentsOf: [UInt8](RFC_2045.ContentType.self))
+            u8.append(contentsOf: [Byte](RFC_2045.ContentType.self))
             u8.append(contentsOf: colonSpace)
-            u8.append(contentsOf: [UInt8](contentType))
+            u8.append(contentsOf: [Byte](contentType))
             u8.append(contentsOf: crlf)
         }
 
         // Content-Transfer-Encoding
         if let contentTransferEncoding = headers.contentTransferEncoding {
-            u8.append(contentsOf: [UInt8](RFC_2045.ContentTransferEncoding.self))
+            u8.append(contentsOf: [Byte](RFC_2045.ContentTransferEncoding.self))
             u8.append(contentsOf: colonSpace)
-            u8.append(contentsOf: [UInt8](contentTransferEncoding))
+            u8.append(contentsOf: [Byte](contentTransferEncoding))
             u8.append(contentsOf: crlf)
         }
 
         // Custom headers
         for header in headers.custom {
-            u8.append(contentsOf: [UInt8](header.name))
+            u8.append(contentsOf: [Byte](header.name))
             u8.append(contentsOf: colonSpace)
-            u8.append(contentsOf: [UInt8](header.value))
+            u8.append(contentsOf: [Byte](header.value))
             u8.append(contentsOf: crlf)
         }
 
-        self = Array<Byte>(u8)
+        self = u8
     }
 }
 

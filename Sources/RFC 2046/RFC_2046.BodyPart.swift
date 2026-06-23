@@ -59,8 +59,6 @@ extension RFC_2046.BodyPart: Binary.ASCII.Serializable {
         ascii bodyPart: Self,
         into buffer: inout Buffer
     ) where Buffer.Element == Byte {
-        // BodyPart.Content storage is now [Byte]; bridge to [UInt8] for the
-        // RFC_4648.Base64 dep (still UInt8-substrate).
         let contentBytes: [Byte] = bodyPart.content.rawValue
 
         // Headers (byte-based) — RFC_2046.BodyPart.Headers is migrated to Byte.
@@ -74,9 +72,8 @@ extension RFC_2046.BodyPart: Binary.ASCII.Serializable {
         if let encoding = bodyPart.transferEncoding {
             switch encoding {
             case .base64:
-                // RFC_4648.Base64.encode is UInt8-substrate; bridge once.
-                let u8 = Array<UInt8>(contentBytes)
-                buffer.append(contentsOf: Array<Byte>(RFC_4648.Base64.encode(u8)))
+                // Base64.encode takes [Byte] and returns [ASCII.Code]; bridge codes to bytes.
+                buffer.append(contentsOf: RFC_4648.Base64.encode(contentBytes).map(\.byte))
             case .quotedPrintable:
                 // Quoted-printable encoding not yet implemented; use raw content
                 buffer.append(contentsOf: contentBytes)
@@ -125,10 +122,10 @@ extension RFC_2046.BodyPart: Binary.ASCII.Serializable {
         // Find the blank line separating headers from content
         // Look for CRLF CRLF or LF LF
         let doubleCrlf: [Byte] = [
-            ASCII.Code.cr, ASCII.Code.lf,
-            ASCII.Code.cr, ASCII.Code.lf,
+            ASCII.Code.cr.byte, ASCII.Code.lf.byte,
+            ASCII.Code.cr.byte, ASCII.Code.lf.byte,
         ]
-        let doubleLf: [Byte] = [ASCII.Code.lf, ASCII.Code.lf]
+        let doubleLf: [Byte] = [ASCII.Code.lf.byte, ASCII.Code.lf.byte]
 
         var headerEndIndex: Int?
         var contentStartIndex: Int?
