@@ -14,6 +14,9 @@
 // RFC_2046.Multipart.Subtype.swift
 // swift-rfc-2046
 
+public import ASCII_Serializer_Primitives
+public import Binary_Serializable_Primitives
+public import Parseable_ASCII_Primitives
 import INCITS_4_1986
 
 extension RFC_2046.Multipart {
@@ -63,14 +66,60 @@ extension RFC_2046.Multipart {
     }
 }
 
-// MARK: - Binary.ASCII.Serializable
+// MARK: - ASCII.Serializable / Binary.Serializable ([FAM-012] format siblings)
 
-extension RFC_2046.Multipart.Subtype: Binary.ASCII.Serializable {
+extension RFC_2046.Multipart.Subtype: ASCII.Serializable, Binary.Serializable {
+    /// Serializes the subtype token as ASCII text.
+    ///
+    /// [FAM-012] text sibling — emits the typed text substrate `ASCII.Code`.
     public static func serialize<Buffer: RangeReplaceableCollection>(
-        ascii subtype: Self,
+        _ subtype: Self,
+        into buffer: inout Buffer
+    ) where Buffer.Element == ASCII.Code {
+        for byte in subtype.rawValue.utf8 { buffer.append(ASCII.Code(byte)) }
+    }
+
+    /// Serializes the subtype token as wire bytes.
+    ///
+    /// [FAM-012] binary sibling. Clause-9: an independent body re-emitting the
+    /// lowercased ASCII token directly into the `Byte` domain — NOT a
+    /// text-serialization detour. Byte-equivalent to the text form (a media subtype
+    /// is an ASCII token); the ASCII==Binary equivalence test guards against drift.
+    public static func serialize<Buffer: RangeReplaceableCollection>(
+        _ subtype: Self,
         into buffer: inout Buffer
     ) where Buffer.Element == Byte {
-        buffer.append(contentsOf: Array<Byte>(subtype.rawValue.utf8))
+        for byte in subtype.rawValue.utf8 { buffer.append(Byte(byte)) }
+    }
+}
+
+extension RFC_2046.Multipart.Subtype: Swift.RawRepresentable {
+    /// Creates a subtype by validating `rawValue`, or `nil` if it is empty.
+    ///
+    /// Re-provides `Swift.RawRepresentable` directly — the retired combined
+    /// ASCII/binary RawRepresentable tier no longer synthesizes it. (Load-bearing:
+    /// the `RawRepresentable`+`Codable` pair synthesizes the single-value JSON
+    /// form.)
+    public init?(rawValue: String) {
+        try? self.init(rawValue)
+    }
+}
+
+extension RFC_2046.Multipart.Subtype: CustomStringConvertible {
+    /// The subtype token — the same text the `ASCII.Serializable` /
+    /// `Binary.Serializable` verbs emit.
+    public var description: String { rawValue }
+}
+
+// MARK: - Parsing
+
+extension RFC_2046.Multipart.Subtype: ASCII.Parseable {
+    /// Creates a subtype by validating `string`'s UTF-8 bytes as ASCII.
+    ///
+    /// Re-provides the string convenience initializer (previously inherited from
+    /// the retired combined ASCII serializable protocol, Void context).
+    public init(_ string: some StringProtocol) throws(Error) {
+        try self.init(ascii: [Byte](string.utf8))
     }
 
     /// Parses a subtype from canonical byte representation
@@ -93,7 +142,7 @@ extension RFC_2046.Multipart.Subtype: Binary.ASCII.Serializable {
     ///
     /// - Parameter bytes: The ASCII byte representation
     /// - Throws: `RFC_2046.Multipart.Subtype.Error` if empty
-    public init<Bytes: Collection>(ascii bytes: Bytes, in context: Void) throws(Error)
+    public init<Bytes: Collection>(ascii bytes: Bytes) throws(Error)
     where Bytes.Element == Byte {
         guard !bytes.isEmpty else {
             throw Error.empty
@@ -121,14 +170,9 @@ extension [Byte] {
     /// - Parameter subtype: The subtype to serialize
     public init(_ subtype: RFC_2046.Multipart.Subtype) {
         self = []
-        RFC_2046.Multipart.Subtype.serialize(ascii: subtype, into: &self)
+        RFC_2046.Multipart.Subtype.serialize(subtype, into: &self)
     }
 }
-
-// MARK: - Protocol Conformances
-
-extension RFC_2046.Multipart.Subtype: Binary.ASCII.RawRepresentable {}
-extension RFC_2046.Multipart.Subtype: CustomStringConvertible {}
 
 // MARK: - Hashable
 

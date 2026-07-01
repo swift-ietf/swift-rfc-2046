@@ -1,7 +1,6 @@
+public import Binary_Serializable_Primitives
 import INCITS_4_1986
 public import RFC_2045
-import RFC_4648
-import RFC_5322
 
 extension RFC_2046 {
     /// Multipart message structure
@@ -176,266 +175,72 @@ extension RFC_2046.Multipart {
     }
 }
 
-// MARK: - Parsing Context
+// MARK: - Binary.Serializable ([FAM-012] — Multipart is byte-domain, Binary-only)
 
-extension RFC_2046.Multipart {
-    /// Parsing context for multipart messages
+extension RFC_2046.Multipart: Binary.Serializable {
+    /// Serializes the whole multipart body as wire bytes.
     ///
-    /// Multipart data requires the boundary delimiter to identify parts.
-    /// The subtype defaults to `.mixed` if not specified.
-    ///
-    /// ## Category Theory
-    ///
-    /// Context-dependent parsing: `(Context, [Byte]) → Multipart`
-    ///
-    /// The same raw bytes can represent different multipart structures
-    /// depending on the boundary delimiter in the context.
-    public struct Context: Sendable {
-        /// The boundary delimiter separating body parts
-        public let boundary: RFC_2046.Boundary
-
-        /// The multipart subtype (default: .mixed)
-        public let subtype: Subtype
-
-        /// Creates a parsing context
-        ///
-        /// - Parameters:
-        ///   - boundary: The boundary delimiter for the multipart message
-        ///   - subtype: The multipart subtype (default: .mixed)
-        public init(boundary: RFC_2046.Boundary, subtype: Subtype = .mixed) {
-            self.boundary = boundary
-            self.subtype = subtype
-        }
-    }
-}
-
-// MARK: - Binary.ASCII.Serializable Conformance
-
-extension RFC_2046.Multipart: Binary.ASCII.Serializable {
-    /// Serialize to canonical ASCII byte representation
-    ///
-    /// Serialization is always context-free because the Multipart value
-    /// contains its own boundary delimiter.
+    /// [FAM-012] Multipart is byte-domain (its parts may carry binary / MIME-
+    /// encoded content), so it conforms to `Binary.Serializable` ONLY.
+    /// Serialization is context-free — the value carries its own boundary.
+    /// Clause-9: composes `Boundary`'s and `BodyPart`'s own `Byte` verbs directly
+    /// into the sink — never a `[Byte]`-intermediate detour.
     ///
     /// ## RFC 2046 Format
     ///
     /// ```
-    /// [preamble CRLF]
+    /// [preamble CRLF CRLF]
     /// --boundary CRLF
-    /// headers CRLF
-    /// CRLF
-    /// content
-    /// --boundary CRLF
+    /// headers CRLF CRLF content CRLF
     /// ...
     /// --boundary-- CRLF
-    /// [epilogue]
+    /// [epilogue CRLF]
     /// ```
     public static func serialize<Buffer: RangeReplaceableCollection>(
-        ascii multipart: Self,
+        _ multipart: Self,
         into buffer: inout Buffer
     ) where Buffer.Element == Byte {
-        let boundaryPrefix: [Byte] = [ASCII.Code.hyphen.byte, ASCII.Code.hyphen.byte]
-        var boundaryBytes: [Byte] = []
-        RFC_2046.Boundary.serialize(ascii: multipart.boundary, into: &boundaryBytes)
+        let hyphen = ASCII.Code.hyphen.byte
+        let cr = ASCII.Code.cr.byte
+        let lf = ASCII.Code.lf.byte
 
         // Preamble (optional)
         if let preamble = multipart.preamble {
-            buffer.append(contentsOf: Array<Byte>(preamble.utf8))
-            buffer.append(ASCII.Code.cr)
-            buffer.append(ASCII.Code.lf)
-            buffer.append(ASCII.Code.cr)
-            buffer.append(ASCII.Code.lf)
+            buffer.append(contentsOf: [Byte](preamble.utf8))
+            buffer.append(cr); buffer.append(lf)
+            buffer.append(cr); buffer.append(lf)
         }
 
-        // Body parts
+        // Body parts, each fenced by "--boundary"
         for part in multipart.parts {
-            // Boundary delimiter
-            buffer.append(contentsOf: boundaryPrefix)
-            buffer.append(contentsOf: boundaryBytes)
-            buffer.append(ASCII.Code.cr)
-            buffer.append(ASCII.Code.lf)
+            buffer.append(hyphen); buffer.append(hyphen)
+            RFC_2046.Boundary.serialize(multipart.boundary, into: &buffer)   // clause-9: Boundary Byte verb
+            buffer.append(cr); buffer.append(lf)
 
-            // Headers (using byte serialization) — migrated to Byte substrate.
-            RFC_2046.BodyPart.Headers.serialize(ascii: part.headers, into: &buffer)
-
-            // Blank line between headers and content
-            buffer.append(ASCII.Code.cr)
-            buffer.append(ASCII.Code.lf)
-
-            // Content with encoding applied (may be binary).
-            let contentBytes: [Byte] = part.content.rawValue
-            if let encoding = part.transferEncoding {
-                switch encoding {
-                case .base64:
-                    // Base64.encode takes [Byte] and returns [ASCII.Code]; bridge codes to bytes.
-                    buffer.append(contentsOf: RFC_4648.Base64.encode(contentBytes).map(\.byte))
-                case .quotedPrintable:
-                    // Quoted-printable encoding not yet implemented; use raw content
-                    buffer.append(contentsOf: contentBytes)
-                default:
-                    // 7bit, 8bit, binary: use raw content
-                    buffer.append(contentsOf: contentBytes)
-                }
-            } else {
-                // No encoding specified: use raw content
-                buffer.append(contentsOf: contentBytes)
-            }
-            buffer.append(ASCII.Code.cr)
-            buffer.append(ASCII.Code.lf)
+            RFC_2046.BodyPart.serialize(part, into: &buffer)                 // clause-9: BodyPart Byte verb
+            buffer.append(cr); buffer.append(lf)
         }
 
-        // Final boundary
-        buffer.append(contentsOf: boundaryPrefix)
-        buffer.append(contentsOf: boundaryBytes)
-        buffer.append(contentsOf: boundaryPrefix)  // "--" suffix for final
-        buffer.append(ASCII.Code.cr)
-        buffer.append(ASCII.Code.lf)
+        // Final "--boundary--"
+        buffer.append(hyphen); buffer.append(hyphen)
+        RFC_2046.Boundary.serialize(multipart.boundary, into: &buffer)
+        buffer.append(hyphen); buffer.append(hyphen)
+        buffer.append(cr); buffer.append(lf)
 
         // Epilogue (optional)
         if let epilogue = multipart.epilogue {
-            buffer.append(contentsOf: Array<Byte>(epilogue.utf8))
-            buffer.append(ASCII.Code.cr)
-            buffer.append(ASCII.Code.lf)
+            buffer.append(contentsOf: [Byte](epilogue.utf8))
+            buffer.append(cr); buffer.append(lf)
         }
     }
+}
 
-    /// Parses multipart data from bytes with context (CANONICAL PRIMITIVE)
-    ///
-    /// This is the primitive parser that works at the byte level.
-    /// Multipart parsing requires context (boundary delimiter) to identify parts.
-    ///
-    /// ## Category Theory
-    ///
-    /// This is the fundamental parsing transformation:
-    /// - **Domain**: (Context, [Byte]) where Context provides boundary
-    /// - **Codomain**: RFC_2046.Multipart (structured data)
-    ///
-    /// Context provides the boundary delimiter required to split parts.
-    /// Serialization is context-free since the Multipart contains its boundary.
-    ///
-    /// ## Example
-    ///
-    /// ```swift
-    /// let context = RFC_2046.Multipart.Context(
-    ///     boundary: try RFC_2046.Boundary("----=_Part_123"),
-    ///     subtype: .alternative
-    /// )
-    /// let multipart = try RFC_2046.Multipart(ascii: bytes, in: context)
-    /// ```
-    ///
-    /// - Parameters:
-    ///   - bytes: The multipart message body as ASCII bytes
-    ///   - context: Parsing context containing boundary and subtype
-    /// - Throws: `RFC_2046.Multipart.Error` if parsing fails
-    public init<Bytes: Collection>(ascii bytes: Bytes, in context: Context) throws(Error)
-    where Bytes.Element == Byte {
-        // MIME delimiters: "--boundary" and the closing "--boundary--". ASCII
-        // codes append into the [Byte] buffer via Binary.ASCII.Serializable.
-        let boundaryBytes: [Byte] = [Byte](context.boundary)
+// MARK: - [Byte] convenience
 
-        var delimiter: [Byte] = []
-        delimiter.reserveCapacity(2 + boundaryBytes.count)
-        delimiter.append(ASCII.Code.hyphen)
-        delimiter.append(ASCII.Code.hyphen)
-        delimiter.append(contentsOf: boundaryBytes)
-
-        var finalDelimiter: [Byte] = []
-        finalDelimiter.reserveCapacity(delimiter.count + 2)
-        finalDelimiter.append(contentsOf: delimiter)
-        finalDelimiter.append(ASCII.Code.hyphen)
-        finalDelimiter.append(ASCII.Code.hyphen)
-
-        var parts: [RFC_2046.BodyPart] = []
-        var preambleBytes: [Byte]?
-        var epilogueBytes: [Byte]?
-
-        var preambleLines: [[Byte]] = []
-        var inPreamble = true
-        var inPart = false
-        var partHeaderLines: [[Byte]] = []
-        var partContentLines: [[Byte]] = []
-        var inHeaders = true
-
-        let crlf: [Byte] = [ASCII.Code.cr.byte, ASCII.Code.lf.byte]
-
-        for lineSlice in RFC_2046.lines(of: Array(bytes)) {
-            if lineSlice.elementsEqual(delimiter) {
-                // Start of new part
-                if inPart {
-                    // Save previous part using efficient joined()
-                    let headerBytes = Array<Byte>(partHeaderLines.joined(separator: crlf))
-                    let contentBytes = Array<Byte>(partContentLines.joined(separator: crlf))
-                    let headers: RFC_2046.BodyPart.Headers
-                    do {
-                        headers = try RFC_2046.BodyPart.Headers(ascii: headerBytes)
-                    } catch {
-                        throw Error.invalidBodyPart("Headers: \(error)")
-                    }
-                    parts.append(
-                        RFC_2046.BodyPart(
-                            headers: headers,
-                            content: RFC_2046.BodyPart.Content(contentBytes)
-                        )
-                    )
-                }
-                if inPreamble {
-                    preambleBytes =
-                        preambleLines.isEmpty ? nil : Array(preambleLines.joined(separator: crlf))
-                    inPreamble = false
-                }
-                inPart = true
-                inHeaders = true
-                partHeaderLines = []
-                partContentLines = []
-            } else if lineSlice.elementsEqual(finalDelimiter) {
-                // End of multipart
-                if inPart {
-                    let headerBytes = Array<Byte>(partHeaderLines.joined(separator: crlf))
-                    let contentBytes = Array<Byte>(partContentLines.joined(separator: crlf))
-                    let headers: RFC_2046.BodyPart.Headers
-                    do {
-                        headers = try RFC_2046.BodyPart.Headers(ascii: headerBytes)
-                    } catch {
-                        throw Error.invalidBodyPart("Headers: \(error)")
-                    }
-                    parts.append(
-                        RFC_2046.BodyPart(
-                            headers: headers,
-                            content: RFC_2046.BodyPart.Content(contentBytes)
-                        )
-                    )
-                }
-                inPart = false
-            } else if inPart {
-                if inHeaders {
-                    if lineSlice.isEmpty {
-                        // Empty line ends headers, starts content
-                        inHeaders = false
-                    } else {
-                        partHeaderLines.append(Array(lineSlice))
-                    }
-                } else {
-                    partContentLines.append(Array(lineSlice))
-                }
-            } else if inPreamble {
-                preambleLines.append(Array(lineSlice))
-            } else {
-                // Epilogue - use separate appends to avoid intermediate allocations
-                if epilogueBytes == nil {
-                    epilogueBytes = Array(lineSlice)
-                } else {
-                    epilogueBytes!.append(contentsOf: crlf)
-                    epilogueBytes!.append(contentsOf: lineSlice)
-                }
-            }
-        }
-
-        try self.init(
-            subtype: context.subtype,
-            parts: parts,
-            boundary: context.boundary,
-            preamble: preambleBytes.map { String(decoding: $0, as: UTF8.self) },
-            epilogue: epilogueBytes.map { String(decoding: $0, as: UTF8.self) }
-        )
+extension [Byte] {
+    /// Creates wire bytes from a `Multipart` via its `Binary.Serializable` verb.
+    init(_ multipart: RFC_2046.Multipart) {
+        self = []
+        RFC_2046.Multipart.serialize(multipart, into: &self)
     }
 }

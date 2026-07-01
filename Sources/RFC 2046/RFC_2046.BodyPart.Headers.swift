@@ -14,6 +14,8 @@
 // RFC_2046.BodyPart.Headers.swift
 // swift-rfc-2046
 
+public import Binary_Serializable_Primitives
+public import Parseable_ASCII_Primitives
 import INCITS_4_1986
 public import RFC_2045
 public import RFC_2183
@@ -77,51 +79,71 @@ extension RFC_2046.BodyPart {
     }
 }
 
-// MARK: - Binary.ASCII.Serializable
+// MARK: - Binary.Serializable ([FAM-012] — Byte verb; ASCII verb blocked, see note)
 
-extension RFC_2046.BodyPart.Headers: Binary.ASCII.Serializable {
+extension RFC_2046.BodyPart.Headers: Binary.Serializable {
+    /// Serializes the MIME header block as RFC 5322 `name: value CRLF` wire bytes.
+    ///
+    /// [FAM-012] **transitional Binary-only.** A header block is genuinely ASCII
+    /// text, so ordinarily it would be a dual sibling (ASCII + Binary). It is
+    /// Binary-only here because one composed sub-part — `RFC_2183.ContentDisposition`
+    /// — is **not yet [FAM-012]-drained**: it offers only a `Byte`-buffer verb
+    /// (`serialize(ascii:into:)`), no `ASCII.Code` verb. Clause-9 forbids a
+    /// `[Byte]`-intermediate detour, so no clause-9-pure `ASCII.Code` verb can be
+    /// composed until RFC 2183 is drained. The other sub-parts (`ContentType`,
+    /// `ContentTransferEncoding`, `Header.Name`/`Header.Value`) ARE drained and
+    /// would compose an `ASCII.Code` verb cleanly. **When RFC 2183 drains, this
+    /// type should gain its `ASCII.Serializable` sibling and become dual.**
+    ///
+    /// Clause-9: each sub-part is composed via its OWN same-format (`Byte`) verb
+    /// directly into the sink — no text-serialization / rawValue detour.
     public static func serialize<Buffer: RangeReplaceableCollection>(
-        ascii headers: Self,
+        _ headers: Self,
         into buffer: inout Buffer
     ) where Buffer.Element == Byte {
-        // Each dependency serialises straight into the Byte buffer; ASCII codes
-        // append via Binary.ASCII.Serializable. No UInt8 intermediates.
         if let contentDisposition = headers.contentDisposition {
-            buffer.append(contentsOf: Array<Byte>("Content-Disposition".utf8))
-            buffer.append(Code.colon)
-            buffer.append(Code.space)
+            buffer.append(contentsOf: [Byte]("Content-Disposition".utf8))
+            buffer.append(Code.colon.byte)
+            buffer.append(Code.space.byte)
+            // RFC 2183 is undrained: its only verb is the Byte-buffer
+            // `serialize(ascii:into:)`. Same-format (Byte→Byte) composition.
             RFC_2183.ContentDisposition.serialize(ascii: contentDisposition, into: &buffer)
-            buffer.append(Code.cr)
-            buffer.append(Code.lf)
+            buffer.append(Code.cr.byte)
+            buffer.append(Code.lf.byte)
         }
 
         if let contentType = headers.contentType {
-            buffer.append(contentsOf: Array<Byte>("Content-Type".utf8))
-            buffer.append(Code.colon)
-            buffer.append(Code.space)
-            RFC_2045.ContentType.serialize(ascii: contentType, into: &buffer)
-            buffer.append(Code.cr)
-            buffer.append(Code.lf)
+            buffer.append(contentsOf: [Byte]("Content-Type".utf8))
+            buffer.append(Code.colon.byte)
+            buffer.append(Code.space.byte)
+            RFC_2045.ContentType.serialize(contentType, into: &buffer)
+            buffer.append(Code.cr.byte)
+            buffer.append(Code.lf.byte)
         }
 
         if let contentTransferEncoding = headers.contentTransferEncoding {
-            buffer.append(contentsOf: Array<Byte>("Content-Transfer-Encoding".utf8))
-            buffer.append(Code.colon)
-            buffer.append(Code.space)
-            RFC_2045.ContentTransferEncoding.serialize(ascii: contentTransferEncoding, into: &buffer)
-            buffer.append(Code.cr)
-            buffer.append(Code.lf)
+            buffer.append(contentsOf: [Byte]("Content-Transfer-Encoding".utf8))
+            buffer.append(Code.colon.byte)
+            buffer.append(Code.space.byte)
+            RFC_2045.ContentTransferEncoding.serialize(contentTransferEncoding, into: &buffer)
+            buffer.append(Code.cr.byte)
+            buffer.append(Code.lf.byte)
         }
 
         for header in headers.custom {
-            RFC_5322.Header.Name.serialize(ascii: header.name, into: &buffer)
-            buffer.append(Code.colon)
-            buffer.append(Code.space)
-            RFC_5322.Header.Value.serialize(ascii: header.value, into: &buffer)
-            buffer.append(Code.cr)
-            buffer.append(Code.lf)
+            RFC_5322.Header.Name.serialize(header.name, into: &buffer)
+            buffer.append(Code.colon.byte)
+            buffer.append(Code.space.byte)
+            RFC_5322.Header.Value.serialize(header.value, into: &buffer)
+            buffer.append(Code.cr.byte)
+            buffer.append(Code.lf.byte)
         }
     }
+}
+
+// MARK: - ASCII.Parseable ([FAM-012] parse — free-standing init; marker requirement seal-last)
+
+extension RFC_2046.BodyPart.Headers: ASCII.Parseable {
 
     /// Parses headers from canonical byte representation
     ///
@@ -144,7 +166,7 @@ extension RFC_2046.BodyPart.Headers: Binary.ASCII.Serializable {
     ///
     /// - Parameter bytes: The ASCII byte representation of headers
     /// - Throws: `RFC_2046.BodyPart.Headers.Error` if parsing fails
-    public init<Bytes: Collection>(ascii bytes: Bytes, in context: Void = ()) throws(Error)
+    public init<Bytes: Collection>(ascii bytes: Bytes) throws(Error)
     where Bytes.Element == Byte {
         var contentDisposition: RFC_2183.ContentDisposition?
         var contentType: RFC_2045.ContentType?
@@ -152,7 +174,7 @@ extension RFC_2046.BodyPart.Headers: Binary.ASCII.Serializable {
         var customHeaders: [RFC_5322.Header] = []
 
         // Split header bytes into RFC 5322 header lines (CR / LF / CRLF).
-        for line in RFC_2046.lines(of: Array(bytes)) where !line.isEmpty {
+        for line in RFC_2046.lines(of: [Byte](bytes)) where !line.isEmpty {
             // Parse line as RFC_5322.Header using canonical transformation
             let header: RFC_5322.Header
             do {
@@ -161,8 +183,11 @@ extension RFC_2046.BodyPart.Headers: Binary.ASCII.Serializable {
                 throw Error.invalidHeaderLine(String(decoding: line, as: UTF8.self))
             }
 
-            // Dispatch based on header name, using canonical parsers
-            let valueBytes = [Byte](header.value)
+            // Dispatch based on header name; re-emit the value bytes via the
+            // drained `Header.Value` Byte verb (clause-9 same-format), then feed
+            // the type-specific ASCII parsers.
+            var valueBytes: [Byte] = []
+            RFC_5322.Header.Value.serialize(header.value, into: &valueBytes)
 
             switch header.name {
             case .contentDisposition:
@@ -186,84 +211,33 @@ extension RFC_2046.BodyPart.Headers: Binary.ASCII.Serializable {
 }
 
 extension [Byte] {
-    /// Creates ASCII bytes from RFC 2046 BodyPart Headers
-    ///
-    /// Serializes headers as RFC 5322 header lines (name: value CRLF).
-    ///
-    /// ## Category Theory
-    ///
-    /// Serialization (natural transformation):
-    /// - **Domain**: RFC_2046.BodyPart.Headers (structured data)
-    /// - **Codomain**: [Byte] (ASCII bytes)
+    /// Creates wire bytes from RFC 2046 BodyPart Headers via the
+    /// `Binary.Serializable` verb (the single source of the header-block bytes).
     ///
     /// ## Example
     ///
     /// ```swift
-    /// let headers = RFC_2046.BodyPart.Headers(
-    ///     contentType: .textPlainUTF8
-    /// )
+    /// let headers = RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8)
     /// let bytes = [Byte](headers)
     /// ```
-    ///
-    /// - Parameter headers: The headers to serialize
     public init(_ headers: RFC_2046.BodyPart.Headers) {
         self = []
-
-        // Estimate capacity based on header presence
-        var estimatedSize = 0
-        if headers.contentDisposition != nil { estimatedSize += 80 }
-        if headers.contentType != nil { estimatedSize += 60 }
-        if headers.contentTransferEncoding != nil { estimatedSize += 40 }
-        estimatedSize += headers.custom.count * 50
-        reserveCapacity(estimatedSize)
-
-        // Build the header block directly in the Byte domain — the dependency
-        // serialize inits and the header name/value serializers all emit [Byte].
-        var u8: [Byte] = []
-        u8.reserveCapacity(estimatedSize)
-
-        let crlf: [Byte] = Array<Byte>("\r\n".utf8)
-        let colonSpace: [Byte] = [Code.colon.byte, Code.space.byte]
-
-        // Content-Disposition
-        if let contentDisposition = headers.contentDisposition {
-            u8.append(contentsOf: [Byte](RFC_2183.ContentDisposition.self))
-            u8.append(contentsOf: colonSpace)
-            u8.append(contentsOf: [Byte](contentDisposition))
-            u8.append(contentsOf: crlf)
-        }
-
-        // Content-Type
-        if let contentType = headers.contentType {
-            u8.append(contentsOf: [Byte](RFC_2045.ContentType.self))
-            u8.append(contentsOf: colonSpace)
-            u8.append(contentsOf: [Byte](contentType))
-            u8.append(contentsOf: crlf)
-        }
-
-        // Content-Transfer-Encoding
-        if let contentTransferEncoding = headers.contentTransferEncoding {
-            u8.append(contentsOf: [Byte](RFC_2045.ContentTransferEncoding.self))
-            u8.append(contentsOf: colonSpace)
-            u8.append(contentsOf: [Byte](contentTransferEncoding))
-            u8.append(contentsOf: crlf)
-        }
-
-        // Custom headers
-        for header in headers.custom {
-            u8.append(contentsOf: [Byte](header.name))
-            u8.append(contentsOf: colonSpace)
-            u8.append(contentsOf: [Byte](header.value))
-            u8.append(contentsOf: crlf)
-        }
-
-        self = u8
+        RFC_2046.BodyPart.Headers.serialize(headers, into: &self)
     }
 }
 
-// MARK: - Protocol Conformances
+// MARK: - CustomStringConvertible
 
-extension RFC_2046.BodyPart.Headers: CustomStringConvertible {}
+extension RFC_2046.BodyPart.Headers: CustomStringConvertible {
+    /// The header block decoded as UTF-8 text — derived from the
+    /// `Binary.Serializable` verb (the retired combined ASCII/binary tier
+    /// formerly synthesized this).
+    public var description: String {
+        var bytes: [Byte] = []
+        RFC_2046.BodyPart.Headers.serialize(self, into: &bytes)
+        return String(decoding: bytes, as: UTF8.self)
+    }
+}
 
 //// MARK: - Convenience Initializers
 //
@@ -340,15 +314,15 @@ extension RFC_2046.BodyPart.Headers {
             switch headerName {
             case .contentDisposition:
                 contentDisposition = newValue.flatMap {
-                    try? RFC_2183.ContentDisposition(ascii: Array<Byte>($0.utf8))
+                    try? RFC_2183.ContentDisposition(ascii: [Byte]($0.utf8))
                 }
             case .contentType:
                 contentType = newValue.flatMap {
-                    try? RFC_2045.ContentType(ascii: Array<Byte>($0.utf8))
+                    try? RFC_2045.ContentType(ascii: [Byte]($0.utf8))
                 }
             case .contentTransferEncoding:
                 contentTransferEncoding = newValue.flatMap {
-                    try? RFC_2045.ContentTransferEncoding(ascii: Array<Byte>($0.utf8))
+                    try? RFC_2045.ContentTransferEncoding(ascii: [Byte]($0.utf8))
                 }
             default:
                 custom[headerName] = newValue

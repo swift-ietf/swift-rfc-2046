@@ -14,6 +14,9 @@
 // RFC_2046.Boundary.swift
 // swift-rfc-2046
 
+public import ASCII_Serializer_Primitives
+public import Binary_Serializable_Primitives
+public import Parseable_ASCII_Primitives
 import INCITS_4_1986
 
 // `Code` aliases ASCII.Code at file scope — avoids the INCITS `[ASCII.Code].ASCII`
@@ -107,14 +110,63 @@ extension RFC_2046.Boundary {
     }
 }
 
-// MARK: - Binary.ASCII.Serializable
+// MARK: - ASCII.Serializable / Binary.Serializable ([FAM-012] format siblings)
 
-extension RFC_2046.Boundary: Binary.ASCII.Serializable {
+extension RFC_2046.Boundary: ASCII.Serializable, Binary.Serializable {
+    /// Serializes the boundary as ASCII text.
+    ///
+    /// [FAM-012] text sibling — emits the typed text substrate `ASCII.Code`.
     public static func serialize<Buffer: RangeReplaceableCollection>(
-        ascii boundary: Self,
+        _ boundary: Self,
+        into buffer: inout Buffer
+    ) where Buffer.Element == ASCII.Code {
+        for byte in boundary.rawValue.utf8 { buffer.append(ASCII.Code(byte)) }
+    }
+
+    /// Serializes the boundary as wire bytes.
+    ///
+    /// [FAM-012] binary sibling. Clause-9: an independent body re-emitting the
+    /// validated ASCII boundary directly into the `Byte` domain — NOT a
+    /// text-serialization detour. Byte-equivalent to the text form (a boundary is
+    /// validated ASCII); the ASCII==Binary equivalence test guards the two
+    /// bodies against drift.
+    public static func serialize<Buffer: RangeReplaceableCollection>(
+        _ boundary: Self,
         into buffer: inout Buffer
     ) where Buffer.Element == Byte {
-        buffer.append(contentsOf: Array<Byte>(boundary.rawValue.utf8))
+        for byte in boundary.rawValue.utf8 { buffer.append(Byte(byte)) }
+    }
+}
+
+// MARK: - RawRepresentable / CustomStringConvertible
+
+extension RFC_2046.Boundary: Swift.RawRepresentable {
+    /// Creates a boundary by validating `rawValue`, or `nil` if it is not a valid RFC 2046 boundary.
+    ///
+    /// Re-provides `Swift.RawRepresentable` directly — the retired combined
+    /// ASCII/binary RawRepresentable tier no longer synthesizes it. (Load-bearing:
+    /// the `RawRepresentable`+`Codable` pair synthesizes the single-value JSON
+    /// form the `Codable` tests assert.)
+    public init?(rawValue: String) {
+        try? self.init(rawValue)
+    }
+}
+
+extension RFC_2046.Boundary: CustomStringConvertible {
+    /// The boundary value — the same text the `ASCII.Serializable` /
+    /// `Binary.Serializable` verbs emit.
+    public var description: String { rawValue }
+}
+
+// MARK: - Parsing
+
+extension RFC_2046.Boundary: ASCII.Parseable {
+    /// Creates a boundary by validating `string`'s UTF-8 bytes as ASCII.
+    ///
+    /// Re-provides the string convenience initializer (previously inherited from
+    /// the retired combined ASCII serializable protocol, Void context).
+    public init(_ string: some StringProtocol) throws(Error) {
+        try self.init(ascii: [Byte](string.utf8))
     }
 
     /// Parses a boundary from canonical byte representation
@@ -149,7 +201,7 @@ extension RFC_2046.Boundary: Binary.ASCII.Serializable {
     ///
     /// - Parameter bytes: The ASCII byte representation
     /// - Throws: `RFC_2046.Boundary.Error` if validation fails
-    public init<Bytes: Collection>(ascii bytes: Bytes, in context: Void) throws(Error)
+    public init<Bytes: Collection>(ascii bytes: Bytes) throws(Error)
     where Bytes.Element == Byte {
         guard !bytes.isEmpty else {
             throw Error.empty
@@ -164,7 +216,7 @@ extension RFC_2046.Boundary: Binary.ASCII.Serializable {
         // grammar is strict ASCII; non-ASCII bytes are fail-state).
         let codes: [ASCII.Code]
         do {
-            codes = try Array<ASCII.Code>(bytes)
+            codes = try Swift.Array<ASCII.Code>(bytes)
         } catch {
             throw Error.notASCII(String(decoding: bytes, as: UTF8.self))
         }
@@ -217,14 +269,9 @@ extension [Byte] {
     /// - Parameter boundary: The boundary to serialize
     public init(_ boundary: RFC_2046.Boundary) {
         self = []
-        RFC_2046.Boundary.serialize(ascii: boundary, into: &self)
+        RFC_2046.Boundary.serialize(boundary, into: &self)
     }
 }
-
-// MARK: - Protocol Conformances
-
-extension RFC_2046.Boundary: Binary.ASCII.RawRepresentable {}
-extension RFC_2046.Boundary: CustomStringConvertible {}
 
 // MARK: - Hashable
 

@@ -1,7 +1,8 @@
+public import Binary_Serializable_Primitives
 import Byte_Collection_Primitives_Standard_Library_Integration
 import INCITS_4_1986
 import RFC_4648
-public import RFC_5322
+import RFC_5322
 
 extension RFC_2046 {
     /// A single part within a multipart message
@@ -43,36 +44,36 @@ extension RFC_2046 {
     }
 }
 
-// MARK: - Binary.ASCII.Serializable
+// MARK: - Binary.Serializable ([FAM-012] — BodyPart is byte-domain, Binary-only)
 
-extension RFC_2046.BodyPart: Binary.ASCII.Serializable {
-    /// Serialize to canonical byte representation
+extension RFC_2046.BodyPart: Binary.Serializable {
+    /// Serializes the body part (`headers CRLF content`) as wire bytes.
     ///
-    /// Serializes headers and content. Note: This does NOT include
-    /// boundary delimiters - use Multipart serialization for complete messages.
+    /// [FAM-012] BodyPart is byte-domain — its content may be binary / MIME-
+    /// transfer-encoded — so it conforms to `Binary.Serializable` ONLY. Clause-9:
+    /// composes `Headers`' own `Byte` verb directly, then appends the (optionally
+    /// transfer-encoded) content. NOT a text-serialization detour.
     ///
-    /// Applies Content-Transfer-Encoding if specified in headers:
-    /// - base64: Encodes content as base64
-    /// - quoted-printable: Uses raw content (not yet implemented)
-    /// - 7bit/8bit/binary: Uses raw content
+    /// Note: emits headers + blank line + (encoded) content WITHOUT boundary
+    /// delimiters — `Multipart` wraps these with its boundaries.
     public static func serialize<Buffer: RangeReplaceableCollection>(
-        ascii bodyPart: Self,
+        _ bodyPart: Self,
         into buffer: inout Buffer
     ) where Buffer.Element == Byte {
+        // Headers (clause-9: Headers' own Byte verb)
+        RFC_2046.BodyPart.Headers.serialize(bodyPart.headers, into: &buffer)
+
+        // Blank line between headers and content
+        buffer.append(ASCII.Code.cr.byte)
+        buffer.append(ASCII.Code.lf.byte)
+
+        // Content with Content-Transfer-Encoding applied
         let contentBytes: [Byte] = bodyPart.content.rawValue
-
-        // Headers (byte-based) — RFC_2046.BodyPart.Headers is migrated to Byte.
-        RFC_2046.BodyPart.Headers.serialize(ascii: bodyPart.headers, into: &buffer)
-
-        // Blank line
-        buffer.append(ASCII.Code.cr)
-        buffer.append(ASCII.Code.lf)
-
-        // Content with encoding applied
         if let encoding = bodyPart.transferEncoding {
             switch encoding {
             case .base64:
-                // Base64.encode takes [Byte] and returns [ASCII.Code]; bridge codes to bytes.
+                // Base64.encode emits [ASCII.Code]; lift the ASCII codes into the
+                // Byte stream (a transfer-ENCODING, not a sub-part codec verb).
                 buffer.append(contentsOf: RFC_4648.Base64.encode(contentBytes).map(\.byte))
             case .quotedPrintable:
                 // Quoted-printable encoding not yet implemented; use raw content
@@ -86,8 +87,12 @@ extension RFC_2046.BodyPart: Binary.ASCII.Serializable {
             buffer.append(contentsOf: contentBytes)
         }
     }
+}
 
-    /// Parses a body part from bytes (AUTHORITATIVE IMPLEMENTATION)
+// MARK: - Byte-domain parse ([FAM-012] free-standing init; Binary.Parseable marker seal-last)
+
+extension RFC_2046.BodyPart {
+    /// Parses a body part from wire bytes (AUTHORITATIVE IMPLEMENTATION)
     ///
     /// Parses headers up to the first blank line, then treats remaining
     /// bytes as content.
@@ -109,15 +114,15 @@ extension RFC_2046.BodyPart: Binary.ASCII.Serializable {
     /// ## Example
     ///
     /// ```swift
-    /// let bytes = Array<Byte>("Content-Type: text/plain\r\n\r\nHello!".utf8)
-    /// let part = try RFC_2046.BodyPart(ascii: bytes)
+    /// let bytes = [Byte]("Content-Type: text/plain\r\n\r\nHello!".utf8)
+    /// let part = try RFC_2046.BodyPart(binary: bytes)
     /// ```
     ///
     /// - Parameter bytes: The body part bytes (headers + blank line + content)
     /// - Throws: `RFC_2046.BodyPart.Error` if parsing fails
-    public init<Bytes: Collection>(ascii bytes: Bytes, in context: Void = ()) throws(Error)
+    public init<Bytes: Collection>(binary bytes: Bytes) throws(Error)
     where Bytes.Element == Byte {
-        let byteArray = Array<Byte>(bytes)
+        let byteArray = [Byte](bytes)
 
         // Find the blank line separating headers from content
         // Look for CRLF CRLF or LF LF
@@ -207,7 +212,7 @@ extension RFC_2046.BodyPart {
 
         self.init(
             headers: headers,
-            content: try Content(text)
+            content: Content(text)
         )
     }
 }
@@ -223,5 +228,15 @@ extension RFC_2046.BodyPart {
     /// The Content-Transfer-Encoding of this part, if specified
     public var transferEncoding: RFC_2045.ContentTransferEncoding? {
         headers.contentTransferEncoding
+    }
+}
+
+// MARK: - [Byte] convenience
+
+extension [Byte] {
+    /// Creates wire bytes from a `BodyPart` via its `Binary.Serializable` verb.
+    init(_ bodyPart: RFC_2046.BodyPart) {
+        self = []
+        RFC_2046.BodyPart.serialize(bodyPart, into: &self)
     }
 }

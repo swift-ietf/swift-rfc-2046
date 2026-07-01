@@ -198,7 +198,7 @@ struct `Error - Integration` {
     @Test
     func `Valid multipart can be created`() throws {
         let headers = RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8)
-        let content = try RFC_2046.BodyPart.Content("Hello!")
+        let content = RFC_2046.BodyPart.Content("Hello!")
         let part = RFC_2046.BodyPart(headers: headers, content: content)
 
         let multipart = try RFC_2046.Multipart(
@@ -214,7 +214,7 @@ struct `Error - Integration` {
     @Test
     func `Boundary errors propagate through Multipart init`() throws {
         let headers = RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8)
-        let content = try RFC_2046.BodyPart.Content("test")
+        let content = RFC_2046.BodyPart.Content("test")
         let part = RFC_2046.BodyPart(headers: headers, content: content)
 
         #expect(throws: Error.self) {

@@ -37,7 +37,7 @@ struct `BodyPart - Core initialization` {
 
     @Test
     func `Content from text string`() throws {
-        let content = try RFC_2046.BodyPart.Content("Hello, World!")
+        let content = RFC_2046.BodyPart.Content("Hello, World!")
 
         #expect([Byte](content) == Array<Byte>("Hello, World!".utf8))
         #expect(content.description == "Hello, World!")
@@ -59,7 +59,7 @@ struct `BodyPart - Core initialization` {
 struct `BodyPart Content - Serialization` {
     @Test
     func `Content serializes to bytes`() throws {
-        let content = try RFC_2046.BodyPart.Content("Hello")
+        let content = RFC_2046.BodyPart.Content("Hello")
         let bytes = [Byte](content)
 
         #expect(bytes == Array<Byte>("Hello".utf8))
@@ -67,7 +67,7 @@ struct `BodyPart Content - Serialization` {
 
     @Test
     func `Content text accessor returns string for valid UTF-8`() throws {
-        let content = try RFC_2046.BodyPart.Content("Hello 🌍")
+        let content = RFC_2046.BodyPart.Content("Hello 🌍")
 
         #expect(content.description == "Hello 🌍")
     }
@@ -88,7 +88,7 @@ struct `BodyPart - Serialization` {
     @Test
     func `Serialize produces headers plus content`() throws {
         let headers = RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8)
-        let content = try RFC_2046.BodyPart.Content("Hello, World!")
+        let content = RFC_2046.BodyPart.Content("Hello, World!")
         let part = RFC_2046.BodyPart(headers: headers, content: content)
 
         let serialized = [Byte](part)
@@ -105,7 +105,7 @@ struct `BodyPart - Serialization` {
             contentType: .textPlainUTF8,
             contentTransferEncoding: .sevenBit
         )
-        let content = try RFC_2046.BodyPart.Content("Hello")
+        let content = RFC_2046.BodyPart.Content("Hello")
         let part = RFC_2046.BodyPart(headers: headers, content: content)
 
         let serialized = [Byte](part)
@@ -121,7 +121,7 @@ struct `BodyPart - Serialization` {
             contentType: .textPlainUTF8,
             contentTransferEncoding: .base64
         )
-        let content = try RFC_2046.BodyPart.Content("Hello, World!")
+        let content = RFC_2046.BodyPart.Content("Hello, World!")
         let part = RFC_2046.BodyPart(headers: headers, content: content)
 
         let serialized = [Byte](part)
@@ -152,7 +152,7 @@ struct `BodyPart - Parsing` {
     @Test
     func `Parse body part from raw bytes`() throws {
         let bytes = Array<Byte>("Content-Type: text/plain\r\n\r\nHello!".utf8)
-        let part = try RFC_2046.BodyPart(ascii: bytes)
+        let part = try RFC_2046.BodyPart(binary: bytes)
 
         #expect(part.contentType?.type == "text")
         #expect(part.contentType?.subtype == "plain")
@@ -162,7 +162,7 @@ struct `BodyPart - Parsing` {
     @Test
     func `Parse body part with LF line endings`() throws {
         let bytes = Array<Byte>("Content-Type: text/plain\n\nHello!".utf8)
-        let part = try RFC_2046.BodyPart(ascii: bytes)
+        let part = try RFC_2046.BodyPart(binary: bytes)
 
         #expect(part.content.description == "Hello!")
     }
@@ -170,7 +170,7 @@ struct `BodyPart - Parsing` {
     @Test
     func `Parse body part with headers only`() throws {
         let bytes = Array<Byte>("Content-Type: text/plain".utf8)
-        let part = try RFC_2046.BodyPart(ascii: bytes)
+        let part = try RFC_2046.BodyPart(binary: bytes)
 
         #expect(part.contentType?.type == "text")
         #expect([Byte](part.content).isEmpty)
@@ -184,11 +184,11 @@ struct `BodyPart - Round-trip` {
     @Test
     func `Round-trip preserves simple part`() throws {
         let headers = RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8)
-        let content = try RFC_2046.BodyPart.Content("Hello, World!")
+        let content = RFC_2046.BodyPart.Content("Hello, World!")
         let original = RFC_2046.BodyPart(headers: headers, content: content)
 
         let serialized = [Byte](original)
-        let parsed = try RFC_2046.BodyPart(ascii: serialized)
+        let parsed = try RFC_2046.BodyPart(binary: serialized)
 
         #expect(parsed.headers == original.headers)
         #expect([Byte](parsed.content) == [Byte](original.content))
@@ -201,7 +201,7 @@ struct `BodyPart - Round-trip` {
         let original = RFC_2046.BodyPart(headers: headers, content: content)
 
         let serialized = [Byte](original)
-        let parsed = try RFC_2046.BodyPart(ascii: serialized)
+        let parsed = try RFC_2046.BodyPart(binary: serialized)
 
         #expect([Byte](parsed.content) == [Byte](original.content))
     }
@@ -213,7 +213,7 @@ struct `BodyPart - Round-trip` {
         let original = RFC_2046.BodyPart(headers: headers, content: content)
 
         let serialized = [Byte](original)
-        let parsed = try RFC_2046.BodyPart(ascii: serialized)
+        let parsed = try RFC_2046.BodyPart(binary: serialized)
 
         #expect([Byte](parsed.content).isEmpty)
     }
@@ -226,7 +226,7 @@ struct `BodyPart - Hashable and Equatable` {
     @Test
     func `Same parts are equal`() throws {
         let headers = RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8)
-        let content = try RFC_2046.BodyPart.Content("Hello")
+        let content = RFC_2046.BodyPart.Content("Hello")
 
         let a = RFC_2046.BodyPart(headers: headers, content: content)
         let b = RFC_2046.BodyPart(headers: headers, content: content)
@@ -238,8 +238,8 @@ struct `BodyPart - Hashable and Equatable` {
     func `Different content makes parts not equal`() throws {
         let headers = RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8)
 
-        let a = try RFC_2046.BodyPart(headers: headers, content: RFC_2046.BodyPart.Content("Hello"))
-        let b = try RFC_2046.BodyPart(headers: headers, content: RFC_2046.BodyPart.Content("World"))
+        let a = RFC_2046.BodyPart(headers: headers, content: RFC_2046.BodyPart.Content("Hello"))
+        let b = RFC_2046.BodyPart(headers: headers, content: RFC_2046.BodyPart.Content("World"))
 
         #expect(a != b)
     }
@@ -247,7 +247,7 @@ struct `BodyPart - Hashable and Equatable` {
     @Test
     func `Same parts have same hash`() throws {
         let headers = RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8)
-        let content = try RFC_2046.BodyPart.Content("Hello")
+        let content = RFC_2046.BodyPart.Content("Hello")
 
         let a = RFC_2046.BodyPart(headers: headers, content: content)
         let b = RFC_2046.BodyPart(headers: headers, content: content)
@@ -264,7 +264,7 @@ struct `BodyPart - Codable` {
             contentType: .textPlainUTF8,
             contentTransferEncoding: .base64
         )
-        let content = try RFC_2046.BodyPart.Content("Hello, World!")
+        let content = RFC_2046.BodyPart.Content("Hello, World!")
         let original = RFC_2046.BodyPart(headers: headers, content: content)
 
         let encoder = JSONEncoder()
@@ -300,7 +300,7 @@ struct `BodyPart - Sendable` {
     @Test
     func `BodyPart can be sent across concurrency domains`() async throws {
         let headers = RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8)
-        let content = try RFC_2046.BodyPart.Content("Hello")
+        let content = RFC_2046.BodyPart.Content("Hello")
         let part = RFC_2046.BodyPart(headers: headers, content: content)
 
         let result = await Task {
