@@ -14,6 +14,7 @@
 // RFC_2046.BodyPart.Headers.swift
 // swift-rfc-2046
 
+public import ASCII_Serializer_Primitives
 public import Binary_Serializable_Primitives
 public import Parseable_ASCII_Primitives
 import INCITS_4_1986
@@ -79,24 +80,64 @@ extension RFC_2046.BodyPart {
     }
 }
 
-// MARK: - Binary.Serializable ([FAM-012] — Byte verb; ASCII verb blocked, see note)
+// MARK: - ASCII.Serializable / Binary.Serializable ([FAM-012] dual format siblings)
+
+extension RFC_2046.BodyPart.Headers: ASCII.Serializable {
+    /// Serializes the MIME header block as RFC 5322 `name: value CRLF` ASCII text.
+    ///
+    /// [FAM-012] text sibling — emits the typed text substrate `ASCII.Code`.
+    /// Clause-9: composes every sub-part's OWN `ASCII.Code` verb directly into the
+    /// sink (`ContentDisposition`, `ContentType`, `ContentTransferEncoding`,
+    /// `Header.Name`/`Header.Value`) — no text-serialization / rawValue detour.
+    public static func serialize<Buffer: RangeReplaceableCollection>(
+        _ headers: Self,
+        into buffer: inout Buffer
+    ) where Buffer.Element == ASCII.Code {
+        if let contentDisposition = headers.contentDisposition {
+            for byte in "Content-Disposition".utf8 { buffer.append(ASCII.Code(byte)) }
+            buffer.append(Code.colon)
+            buffer.append(Code.space)
+            RFC_2183.ContentDisposition.serialize(contentDisposition, into: &buffer)
+            buffer.append(Code.cr)
+            buffer.append(Code.lf)
+        }
+
+        if let contentType = headers.contentType {
+            for byte in "Content-Type".utf8 { buffer.append(ASCII.Code(byte)) }
+            buffer.append(Code.colon)
+            buffer.append(Code.space)
+            RFC_2045.ContentType.serialize(contentType, into: &buffer)
+            buffer.append(Code.cr)
+            buffer.append(Code.lf)
+        }
+
+        if let contentTransferEncoding = headers.contentTransferEncoding {
+            for byte in "Content-Transfer-Encoding".utf8 { buffer.append(ASCII.Code(byte)) }
+            buffer.append(Code.colon)
+            buffer.append(Code.space)
+            RFC_2045.ContentTransferEncoding.serialize(contentTransferEncoding, into: &buffer)
+            buffer.append(Code.cr)
+            buffer.append(Code.lf)
+        }
+
+        for header in headers.custom {
+            RFC_5322.Header.Name.serialize(header.name, into: &buffer)
+            buffer.append(Code.colon)
+            buffer.append(Code.space)
+            RFC_5322.Header.Value.serialize(header.value, into: &buffer)
+            buffer.append(Code.cr)
+            buffer.append(Code.lf)
+        }
+    }
+}
 
 extension RFC_2046.BodyPart.Headers: Binary.Serializable {
     /// Serializes the MIME header block as RFC 5322 `name: value CRLF` wire bytes.
     ///
-    /// [FAM-012] **transitional Binary-only.** A header block is genuinely ASCII
-    /// text, so ordinarily it would be a dual sibling (ASCII + Binary). It is
-    /// Binary-only here because one composed sub-part — `RFC_2183.ContentDisposition`
-    /// — is **not yet [FAM-012]-drained**: it offers only a `Byte`-buffer verb
-    /// (`serialize(ascii:into:)`), no `ASCII.Code` verb. Clause-9 forbids a
-    /// `[Byte]`-intermediate detour, so no clause-9-pure `ASCII.Code` verb can be
-    /// composed until RFC 2183 is drained. The other sub-parts (`ContentType`,
-    /// `ContentTransferEncoding`, `Header.Name`/`Header.Value`) ARE drained and
-    /// would compose an `ASCII.Code` verb cleanly. **When RFC 2183 drains, this
-    /// type should gain its `ASCII.Serializable` sibling and become dual.**
-    ///
-    /// Clause-9: each sub-part is composed via its OWN same-format (`Byte`) verb
-    /// directly into the sink — no text-serialization / rawValue detour.
+    /// [FAM-012] binary sibling. Clause-9: each sub-part is composed via its OWN
+    /// same-format (`Byte`) verb directly into the sink — no text-serialization /
+    /// rawValue detour. Byte-equivalent to the ASCII form (header blocks are ASCII
+    /// text); the ASCII==Binary equivalence test guards the two bodies against drift.
     public static func serialize<Buffer: RangeReplaceableCollection>(
         _ headers: Self,
         into buffer: inout Buffer
@@ -105,9 +146,7 @@ extension RFC_2046.BodyPart.Headers: Binary.Serializable {
             buffer.append(contentsOf: [Byte]("Content-Disposition".utf8))
             buffer.append(Code.colon.byte)
             buffer.append(Code.space.byte)
-            // RFC 2183 is undrained: its only verb is the Byte-buffer
-            // `serialize(ascii:into:)`. Same-format (Byte→Byte) composition.
-            RFC_2183.ContentDisposition.serialize(ascii: contentDisposition, into: &buffer)
+            RFC_2183.ContentDisposition.serialize(contentDisposition, into: &buffer)
             buffer.append(Code.cr.byte)
             buffer.append(Code.lf.byte)
         }

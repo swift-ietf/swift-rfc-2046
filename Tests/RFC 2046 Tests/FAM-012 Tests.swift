@@ -10,6 +10,7 @@
 
 import Foundation
 import Testing
+import RFC_2183
 
 @testable import RFC_2046
 
@@ -41,6 +42,22 @@ struct ASCIIBinaryEquivalenceTests {
         RFC_2046.Multipart.Subtype.serialize(value, into: &wire)
         #expect(ascii.map(\.byte) == wire)
         #expect(String(decoding: wire, as: UTF8.self) == "alternative")
+    }
+
+    @Test func `BodyPart.Headers verbs agree`() {
+        // Upgraded to dual-sibling once RFC_2183.ContentDisposition drained — the
+        // ContentDisposition branch now composes that sub-part's ASCII / Byte verbs,
+        // so this guards the two Headers bodies (incl. every sub-part) against drift.
+        let value = RFC_2046.BodyPart.Headers(
+            contentDisposition: .inline(),
+            contentType: .textPlainUTF8,
+            contentTransferEncoding: .base64
+        )
+        var ascii: [ASCII.Code] = []
+        RFC_2046.BodyPart.Headers.serialize(value, into: &ascii)
+        var wire: [Byte] = []
+        RFC_2046.BodyPart.Headers.serialize(value, into: &wire)
+        #expect(ascii.map(\.byte) == wire)
     }
 }
 
