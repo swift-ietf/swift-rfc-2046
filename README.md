@@ -1,6 +1,6 @@
 # Swift RFC 2046
 
-[![CI](https://github.com/swift-standards/swift-rfc-2046/workflows/CI/badge.svg)](https://github.com/swift-standards/swift-rfc-2046/actions/workflows/ci.yml)
+[![CI](https://github.com/swift-ietf/swift-rfc-2046/workflows/CI/badge.svg)](https://github.com/swift-ietf/swift-rfc-2046/actions/workflows/ci.yml)
 ![Development Status](https://img.shields.io/badge/status-active--development-blue.svg)
 
 Swift implementation of RFC 2046: Multipurpose Internet Mail Extensions (MIME) Part Two: Media Types
@@ -27,7 +27,7 @@ Add swift-rfc-2046 to your package dependencies:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/swift-standards/swift-rfc-2046.git", from: "0.1.0")
+    .package(url: "https://github.com/swift-ietf/swift-rfc-2046.git", from: "0.3.5")
 ]
 ```
 
@@ -252,11 +252,11 @@ This implementation follows RFC 2046 specifications:
 ## Related Packages
 
 ### Dependencies
-- [swift-rfc-2045](https://github.com/swift-standards/swift-rfc-2045) - MIME fundamentals (Content-Type, Content-Transfer-Encoding)
+- [swift-rfc-2045](https://github.com/swift-ietf/swift-rfc-2045) - MIME fundamentals (Content-Type, Content-Transfer-Encoding)
 
 ### Related
-- [swift-rfc-7578](https://github.com/swift-standards/swift-rfc-7578) - Returning Values from Forms: multipart/form-data
-- [swift-rfc-2388](https://github.com/swift-standards/swift-rfc-2388) - Returning Values from Forms: multipart/form-data encoding
+- [swift-rfc-7578](https://github.com/swift-ietf/swift-rfc-7578) - Returning Values from Forms: multipart/form-data
+- [swift-rfc-2388](https://github.com/swift-ietf/swift-rfc-2388) - Returning Values from Forms: multipart/form-data encoding
 
 ## License
 
