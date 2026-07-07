@@ -39,7 +39,7 @@ struct `BodyPart - Core initialization` {
     func `Content from text string`() throws {
         let content = RFC_2046.BodyPart.Content("Hello, World!")
 
-        #expect([Byte](content) == Array<Byte>("Hello, World!".utf8))
+        #expect([Byte](content) == [Byte]("Hello, World!".utf8))
         #expect(content.description == "Hello, World!")
     }
 
@@ -62,7 +62,7 @@ struct `BodyPart Content - Serialization` {
         let content = RFC_2046.BodyPart.Content("Hello")
         let bytes = [Byte](content)
 
-        #expect(bytes == Array<Byte>("Hello".utf8))
+        #expect(bytes == [Byte]("Hello".utf8))
     }
 
     @Test
@@ -151,7 +151,7 @@ struct `BodyPart - Serialization` {
 struct `BodyPart - Parsing` {
     @Test
     func `Parse body part from raw bytes`() throws {
-        let bytes = Array<Byte>("Content-Type: text/plain\r\n\r\nHello!".utf8)
+        let bytes = [Byte]("Content-Type: text/plain\r\n\r\nHello!".utf8)
         let part = try RFC_2046.BodyPart(binary: bytes)
 
         #expect(part.contentType?.type == "text")
@@ -161,7 +161,7 @@ struct `BodyPart - Parsing` {
 
     @Test
     func `Parse body part with LF line endings`() throws {
-        let bytes = Array<Byte>("Content-Type: text/plain\n\nHello!".utf8)
+        let bytes = [Byte]("Content-Type: text/plain\n\nHello!".utf8)
         let part = try RFC_2046.BodyPart(binary: bytes)
 
         #expect(part.content.description == "Hello!")
@@ -169,7 +169,7 @@ struct `BodyPart - Parsing` {
 
     @Test
     func `Parse body part with headers only`() throws {
-        let bytes = Array<Byte>("Content-Type: text/plain".utf8)
+        let bytes = [Byte]("Content-Type: text/plain".utf8)
         let part = try RFC_2046.BodyPart(binary: bytes)
 
         #expect(part.contentType?.type == "text")

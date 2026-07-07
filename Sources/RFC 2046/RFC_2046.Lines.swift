@@ -41,7 +41,8 @@ extension RFC_2046 {
             if byte == cr {
                 result.append(bytes[lineStart..<index])
                 let next = bytes.index(after: index)
-                index = next < bytes.endIndex && bytes[next] == lf
+                index =
+                    next < bytes.endIndex && bytes[next] == lf
                     ? bytes.index(after: next)
                     : next
                 lineStart = index

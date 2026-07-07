@@ -16,8 +16,8 @@
 
 public import ASCII_Serializer_Primitives
 public import Binary_Serializable_Primitives
-public import Parseable_ASCII_Primitives
 import INCITS_4_1986
+public import Parseable_ASCII_Primitives
 public import RFC_2045
 public import RFC_2183
 public import RFC_5322
@@ -199,7 +199,7 @@ extension RFC_2046.BodyPart.Headers: ASCII.Parseable {
     /// ## Example
     ///
     /// ```swift
-    /// let headerBytes = Array<Byte>("Content-Type: text/plain\r\n".utf8)
+    /// let headerBytes = [Byte]("Content-Type: text/plain\r\n".utf8)
     /// let headers = try RFC_2046.BodyPart.Headers(ascii: headerBytes)
     /// ```
     ///

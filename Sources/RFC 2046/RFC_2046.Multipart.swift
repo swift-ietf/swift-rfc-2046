@@ -207,30 +207,40 @@ extension RFC_2046.Multipart: Binary.Serializable {
         // Preamble (optional)
         if let preamble = multipart.preamble {
             buffer.append(contentsOf: [Byte](preamble.utf8))
-            buffer.append(cr); buffer.append(lf)
-            buffer.append(cr); buffer.append(lf)
+            buffer.append(cr)
+            buffer.append(lf)
+            buffer.append(cr)
+            buffer.append(lf)
         }
 
         // Body parts, each fenced by "--boundary"
         for part in multipart.parts {
-            buffer.append(hyphen); buffer.append(hyphen)
-            RFC_2046.Boundary.serialize(multipart.boundary, into: &buffer)   // clause-9: Boundary Byte verb
-            buffer.append(cr); buffer.append(lf)
+            buffer.append(hyphen)
+            buffer.append(hyphen)
+            // clause-9: Boundary Byte verb
+            RFC_2046.Boundary.serialize(multipart.boundary, into: &buffer)
+            buffer.append(cr)
+            buffer.append(lf)
 
-            RFC_2046.BodyPart.serialize(part, into: &buffer)                 // clause-9: BodyPart Byte verb
-            buffer.append(cr); buffer.append(lf)
+            RFC_2046.BodyPart.serialize(part, into: &buffer)  // clause-9: BodyPart Byte verb
+            buffer.append(cr)
+            buffer.append(lf)
         }
 
         // Final "--boundary--"
-        buffer.append(hyphen); buffer.append(hyphen)
+        buffer.append(hyphen)
+        buffer.append(hyphen)
         RFC_2046.Boundary.serialize(multipart.boundary, into: &buffer)
-        buffer.append(hyphen); buffer.append(hyphen)
-        buffer.append(cr); buffer.append(lf)
+        buffer.append(hyphen)
+        buffer.append(hyphen)
+        buffer.append(cr)
+        buffer.append(lf)
 
         // Epilogue (optional)
         if let epilogue = multipart.epilogue {
             buffer.append(contentsOf: [Byte](epilogue.utf8))
-            buffer.append(cr); buffer.append(lf)
+            buffer.append(cr)
+            buffer.append(lf)
         }
     }
 }

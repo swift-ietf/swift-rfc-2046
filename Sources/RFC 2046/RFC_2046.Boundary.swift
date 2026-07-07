@@ -16,8 +16,8 @@
 
 public import ASCII_Serializer_Primitives
 public import Binary_Serializable_Primitives
-public import Parseable_ASCII_Primitives
 import INCITS_4_1986
+public import Parseable_ASCII_Primitives
 
 // `Code` aliases ASCII.Code at file scope — avoids the INCITS `[ASCII.Code].ASCII`
 // shadow inside the `extension [Byte]` below.
@@ -195,7 +195,7 @@ extension RFC_2046.Boundary: ASCII.Parseable {
     /// ## Example
     ///
     /// ```swift
-    /// let bytes = Array<Byte>("----=_Part_12345".utf8)
+    /// let bytes = [Byte]("----=_Part_12345".utf8)
     /// let boundary = try RFC_2046.Boundary(ascii: bytes)
     /// ```
     ///
@@ -216,7 +216,7 @@ extension RFC_2046.Boundary: ASCII.Parseable {
         // grammar is strict ASCII; non-ASCII bytes are fail-state).
         let codes: [ASCII.Code]
         do {
-            codes = try Swift.Array<ASCII.Code>(bytes)
+            codes = try [ASCII.Code](bytes)
         } catch {
             throw Error.notASCII(String(decoding: bytes, as: UTF8.self))
         }

@@ -14,9 +14,9 @@
 // RFC_2046.Multipart.Parser.swift
 // swift-rfc-2046
 
-public import Parser_Primitives
 public import Byte_Parser_Primitives
 import INCITS_4_1986
+public import Parser_Primitives
 
 extension RFC_2046.Multipart {
     /// Parser witness carrying the out-of-band parse CONTEXT a multipart body needs
@@ -142,7 +142,8 @@ extension RFC_2046.Multipart {
                     }
                     if inPreamble {
                         preambleBytes =
-                            preambleLines.isEmpty ? nil : [Byte](preambleLines.joined(separator: crlf))
+                            preambleLines.isEmpty
+                            ? nil : [Byte](preambleLines.joined(separator: crlf))
                         inPreamble = false
                     }
                     inPart = true

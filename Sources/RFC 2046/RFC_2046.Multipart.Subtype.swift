@@ -16,8 +16,8 @@
 
 public import ASCII_Serializer_Primitives
 public import Binary_Serializable_Primitives
-public import Parseable_ASCII_Primitives
 import INCITS_4_1986
+public import Parseable_ASCII_Primitives
 
 extension RFC_2046.Multipart {
     /// Multipart subtype per RFC 2046 Section 5.1
@@ -136,7 +136,7 @@ extension RFC_2046.Multipart.Subtype: ASCII.Parseable {
     /// ## Example
     ///
     /// ```swift
-    /// let bytes = Array<Byte>("alternative".utf8)
+    /// let bytes = [Byte]("alternative".utf8)
     /// let subtype = try RFC_2046.Multipart.Subtype(ascii: bytes)
     /// ```
     ///

@@ -9,8 +9,8 @@
 //
 
 import Foundation
-import Testing
 import RFC_2183
+import Testing
 
 @testable import RFC_2046
 
