@@ -75,10 +75,12 @@ extension RFC_2046 {
 
 extension RFC_2046.Boundary {
     /// RFC 2046 boundary length limits
-    package enum Limits {
-        /// Maximum boundary length (70 characters per RFC 2046 Section 5.1.1)
-        static let maxLength = 70
-    }
+    package enum Limits {}
+}
+
+extension RFC_2046.Boundary.Limits {
+    /// Maximum boundary length (70 characters per RFC 2046 Section 5.1.1)
+    static let maxLength = 70
 }
 
 // MARK: - Character Validation

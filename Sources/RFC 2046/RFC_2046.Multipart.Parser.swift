@@ -50,11 +50,6 @@ extension RFC_2046.Multipart {
     /// so this leaf parser drains the cursor and runs the boundary/line scan over
     /// the collected bytes.
     public struct Parser: Parser_Primitives.Parser.`Protocol`, Sendable {
-        public typealias Input = Byte.Input
-        public typealias Output = RFC_2046.Multipart
-        public typealias Failure = RFC_2046.Multipart.Error
-        public typealias Body = Never
-
         /// The boundary delimiter separating body parts.
         public let boundary: RFC_2046.Boundary
 
@@ -73,136 +68,145 @@ extension RFC_2046.Multipart {
             self.boundary = boundary
             self.subtype = subtype
         }
+    }
+}
 
-        /// Parses a multipart body from the byte cursor `input`, consuming it.
-        ///
-        /// [FAM-012] `Parser.`Protocol`` cursor-form leaf parser: drains the whole
-        /// byte cursor (multipart is a whole-buffer grammar) and runs the
-        /// boundary/line scan using this witness's stored `boundary` / `subtype`.
-        ///
-        /// - Parameter input: The byte cursor to consume.
-        /// - Returns: The parsed multipart value.
-        /// - Throws: `RFC_2046.Multipart.Error` if parsing fails.
-        public borrowing func parse(
-            _ input: inout Byte.Input
-        ) throws(RFC_2046.Multipart.Error) -> RFC_2046.Multipart {
-            // Drain the cursor into an owned byte buffer (whole-buffer grammar).
-            var bytes: [Byte] = []
-            while !input.isEmpty {
-                guard let byte = try? input.advance() else { break }
-                bytes.append(byte)
-            }
+extension RFC_2046.Multipart.Parser {
+    public typealias Input = Byte.Input
+    public typealias Output = RFC_2046.Multipart
+    public typealias Failure = RFC_2046.Multipart.Error
+    public typealias Body = Never
 
-            // MIME delimiters: "--boundary" and the closing "--boundary--".
-            let boundaryBytes: [Byte] = [Byte](boundary)
+    /// Parses a multipart body from the byte cursor `input`, consuming it.
+    ///
+    /// [FAM-012] `Parser.`Protocol`` cursor-form leaf parser: drains the whole
+    /// byte cursor (multipart is a whole-buffer grammar) and runs the
+    /// boundary/line scan using this witness's stored `boundary` / `subtype`.
+    ///
+    /// - Parameter input: The byte cursor to consume.
+    /// - Returns: The parsed multipart value.
+    /// - Throws: `RFC_2046.Multipart.Error` if parsing fails.
+    public borrowing func parse(
+        _ input: inout Byte.Input
+    ) throws(RFC_2046.Multipart.Error) -> RFC_2046.Multipart {
+        // Drain the cursor into an owned byte buffer (whole-buffer grammar).
+        var bytes: [Byte] = []
+        while !input.isEmpty {
+            guard let byte = try? input.advance() else { break }
+            bytes.append(byte)
+        }
 
-            var delimiter: [Byte] = []
-            delimiter.reserveCapacity(2 + boundaryBytes.count)
-            delimiter.append(ASCII.Code.hyphen.byte)
-            delimiter.append(ASCII.Code.hyphen.byte)
-            delimiter.append(contentsOf: boundaryBytes)
+        // MIME delimiters: "--boundary" and the closing "--boundary--".
+        let boundaryBytes: [Byte] = [Byte](boundary)
 
-            var finalDelimiter: [Byte] = []
-            finalDelimiter.reserveCapacity(delimiter.count + 2)
-            finalDelimiter.append(contentsOf: delimiter)
-            finalDelimiter.append(ASCII.Code.hyphen.byte)
-            finalDelimiter.append(ASCII.Code.hyphen.byte)
+        var delimiter: [Byte] = []
+        delimiter.reserveCapacity(2 + boundaryBytes.count)
+        delimiter.append(ASCII.Code.hyphen.byte)
+        delimiter.append(ASCII.Code.hyphen.byte)
+        delimiter.append(contentsOf: boundaryBytes)
 
-            var parts: [RFC_2046.BodyPart] = []
-            var preambleBytes: [Byte]?
-            var epilogueBytes: [Byte]?
+        var finalDelimiter: [Byte] = []
+        finalDelimiter.reserveCapacity(delimiter.count + 2)
+        finalDelimiter.append(contentsOf: delimiter)
+        finalDelimiter.append(ASCII.Code.hyphen.byte)
+        finalDelimiter.append(ASCII.Code.hyphen.byte)
 
-            var preambleLines: [[Byte]] = []
-            var inPreamble = true
-            var inPart = false
-            var partHeaderLines: [[Byte]] = []
-            var partContentLines: [[Byte]] = []
-            var inHeaders = true
+        var parts: [RFC_2046.BodyPart] = []
+        var preambleBytes: [Byte]?
+        var epilogueBytes: [Byte]?
 
-            let crlf: [Byte] = [ASCII.Code.cr.byte, ASCII.Code.lf.byte]
+        var preambleLines: [[Byte]] = []
+        var inPreamble = true
+        var inPart = false
+        var partHeaderLines: [[Byte]] = []
+        var partContentLines: [[Byte]] = []
+        var inHeaders = true
 
-            for lineSlice in RFC_2046.lines(of: bytes) {
-                if lineSlice.elementsEqual(delimiter) {
-                    // Start of new part
-                    if inPart {
-                        let headerBytes = [Byte](partHeaderLines.joined(separator: crlf))
-                        let contentBytes = [Byte](partContentLines.joined(separator: crlf))
-                        let headers: RFC_2046.BodyPart.Headers
-                        do {
-                            headers = try RFC_2046.BodyPart.Headers(ascii: headerBytes)
-                        } catch {
-                            throw RFC_2046.Multipart.Error.invalidBodyPart("Headers: \(error)")
-                        }
-                        parts.append(
-                            RFC_2046.BodyPart(
-                                headers: headers,
-                                content: RFC_2046.BodyPart.Content(contentBytes)
-                            )
+        let crlf: [Byte] = [ASCII.Code.cr.byte, ASCII.Code.lf.byte]
+
+        for lineSlice in RFC_2046.lines(of: bytes) {
+            if lineSlice.elementsEqual(delimiter) {
+                // Start of new part
+                if inPart {
+                    let headerBytes = [Byte](partHeaderLines.joined(separator: crlf))
+                    let contentBytes = [Byte](partContentLines.joined(separator: crlf))
+                    let headers: RFC_2046.BodyPart.Headers
+                    do {
+                        headers = try RFC_2046.BodyPart.Headers(ascii: headerBytes)
+                    } catch {
+                        throw RFC_2046.Multipart.Error.invalidBodyPart("Headers: \(error)")
+                    }
+                    parts.append(
+                        RFC_2046.BodyPart(
+                            headers: headers,
+                            content: RFC_2046.BodyPart.Content(contentBytes)
                         )
+                    )
+                }
+                if inPreamble {
+                    preambleBytes =
+                        preambleLines.isEmpty
+                        ? nil : [Byte](preambleLines.joined(separator: crlf))
+                    inPreamble = false
+                }
+                inPart = true
+                inHeaders = true
+                partHeaderLines = []
+                partContentLines = []
+            } else if lineSlice.elementsEqual(finalDelimiter) {
+                // End of multipart
+                if inPart {
+                    let headerBytes = [Byte](partHeaderLines.joined(separator: crlf))
+                    let contentBytes = [Byte](partContentLines.joined(separator: crlf))
+                    let headers: RFC_2046.BodyPart.Headers
+                    do {
+                        headers = try RFC_2046.BodyPart.Headers(ascii: headerBytes)
+                    } catch {
+                        throw RFC_2046.Multipart.Error.invalidBodyPart("Headers: \(error)")
                     }
-                    if inPreamble {
-                        preambleBytes =
-                            preambleLines.isEmpty
-                            ? nil : [Byte](preambleLines.joined(separator: crlf))
-                        inPreamble = false
-                    }
-                    inPart = true
-                    inHeaders = true
-                    partHeaderLines = []
-                    partContentLines = []
-                } else if lineSlice.elementsEqual(finalDelimiter) {
-                    // End of multipart
-                    if inPart {
-                        let headerBytes = [Byte](partHeaderLines.joined(separator: crlf))
-                        let contentBytes = [Byte](partContentLines.joined(separator: crlf))
-                        let headers: RFC_2046.BodyPart.Headers
-                        do {
-                            headers = try RFC_2046.BodyPart.Headers(ascii: headerBytes)
-                        } catch {
-                            throw RFC_2046.Multipart.Error.invalidBodyPart("Headers: \(error)")
-                        }
-                        parts.append(
-                            RFC_2046.BodyPart(
-                                headers: headers,
-                                content: RFC_2046.BodyPart.Content(contentBytes)
-                            )
+                    parts.append(
+                        RFC_2046.BodyPart(
+                            headers: headers,
+                            content: RFC_2046.BodyPart.Content(contentBytes)
                         )
-                    }
-                    inPart = false
-                } else if inPart {
-                    if inHeaders {
-                        if lineSlice.isEmpty {
-                            // Empty line ends headers, starts content
-                            inHeaders = false
-                        } else {
-                            partHeaderLines.append([Byte](lineSlice))
-                        }
+                    )
+                }
+                inPart = false
+            } else if inPart {
+                if inHeaders {
+                    if lineSlice.isEmpty {
+                        // Empty line ends headers, starts content
+                        inHeaders = false
                     } else {
-                        partContentLines.append([Byte](lineSlice))
+                        partHeaderLines.append([Byte](lineSlice))
                     }
-                } else if inPreamble {
-                    preambleLines.append([Byte](lineSlice))
                 } else {
-                    // Epilogue - use separate appends to avoid intermediate allocations
-                    if epilogueBytes == nil {
-                        epilogueBytes = [Byte](lineSlice)
-                    } else {
-                        epilogueBytes!.append(contentsOf: crlf)
-                        epilogueBytes!.append(contentsOf: lineSlice)
-                    }
+                    partContentLines.append([Byte](lineSlice))
+                }
+            } else if inPreamble {
+                preambleLines.append([Byte](lineSlice))
+            } else {
+                // Epilogue - use separate appends to avoid intermediate allocations
+                if epilogueBytes == nil {
+                    epilogueBytes = [Byte](lineSlice)
+                } else {
+                    epilogueBytes!.append(contentsOf: crlf)
+                    epilogueBytes!.append(contentsOf: lineSlice)
                 }
             }
-
-            return try RFC_2046.Multipart(
-                subtype: subtype,
-                parts: parts,
-                boundary: boundary,
-                preamble: preambleBytes.map { String(decoding: $0, as: UTF8.self) },
-                epilogue: epilogueBytes.map { String(decoding: $0, as: UTF8.self) }
-            )
         }
-    }
 
+        return try RFC_2046.Multipart(
+            subtype: subtype,
+            parts: parts,
+            boundary: boundary,
+            preamble: preambleBytes.map { String(decoding: $0, as: UTF8.self) },
+            epilogue: epilogueBytes.map { String(decoding: $0, as: UTF8.self) }
+        )
+    }
+}
+
+extension RFC_2046.Multipart {
     /// Parses a multipart body from `bytes`, with the parse CONTEXT carried by the
     /// `parser` witness VALUE ([FAM-012] §11 — the ergonomic context-bearing entry).
     ///
