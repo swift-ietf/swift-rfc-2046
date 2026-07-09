@@ -150,7 +150,7 @@ extension RFC_2046.BodyPart {
             // No blank line found - treat as headers only with empty content
             let headerBytes = byteArray
             let headers: Headers
-            do {
+            do throws(Headers.Error) {
                 headers = try Headers(ascii: headerBytes)
             } catch {
                 throw Error.invalidHeaders("\(error)")
@@ -162,7 +162,7 @@ extension RFC_2046.BodyPart {
         // Parse headers
         let headerBytes = Array(byteArray[..<headerEnd])
         let headers: Headers
-        do {
+        do throws(Headers.Error) {
             headers = try Headers(ascii: headerBytes)
         } catch {
             throw Error.invalidHeaders("\(error)")

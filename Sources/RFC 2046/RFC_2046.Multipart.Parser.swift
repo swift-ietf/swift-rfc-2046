@@ -131,7 +131,7 @@ extension RFC_2046.Multipart.Parser {
                     let headerBytes = [Byte](partHeaderLines.joined(separator: crlf))
                     let contentBytes = [Byte](partContentLines.joined(separator: crlf))
                     let headers: RFC_2046.BodyPart.Headers
-                    do {
+                    do throws(RFC_2046.BodyPart.Headers.Error) {
                         headers = try RFC_2046.BodyPart.Headers(ascii: headerBytes)
                     } catch {
                         throw RFC_2046.Multipart.Error.invalidBodyPart("Headers: \(error)")
@@ -159,7 +159,7 @@ extension RFC_2046.Multipart.Parser {
                     let headerBytes = [Byte](partHeaderLines.joined(separator: crlf))
                     let contentBytes = [Byte](partContentLines.joined(separator: crlf))
                     let headers: RFC_2046.BodyPart.Headers
-                    do {
+                    do throws(RFC_2046.BodyPart.Headers.Error) {
                         headers = try RFC_2046.BodyPart.Headers(ascii: headerBytes)
                     } catch {
                         throw RFC_2046.Multipart.Error.invalidBodyPart("Headers: \(error)")

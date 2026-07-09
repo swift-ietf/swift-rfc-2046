@@ -216,7 +216,7 @@ extension RFC_2046.BodyPart.Headers: ASCII.Parseable {
         for line in RFC_2046.lines(of: [Byte](bytes)) where !line.isEmpty {
             // Parse line as RFC_5322.Header using canonical transformation
             let header: RFC_5322.Header
-            do {
+            do throws(RFC_5322.Header.Error) {
                 header = try RFC_5322.Header(ascii: line)
             } catch {
                 throw Error.invalidHeaderLine(String(decoding: line, as: UTF8.self))
