@@ -103,8 +103,9 @@ struct BinaryOnlyRoundTripTests {
 /// The context-bearing conformer: `Multipart` serializes context-free (the value
 /// carries its own boundary) but PARSES with the boundary as out-of-band context,
 /// carried by a parser-witness VALUE the caller builds and passes — the §11 shape.
-@Suite("RFC 2046 [FAM-012] Multipart parser-witness")
-struct MultipartParserWitnessTests {
+extension RFC_2046.Multipart {
+    @Suite("RFC 2046 [FAM-012] Multipart parser-witness")
+    struct Test {
     @Test func `Multipart serializes then re-parses via the parser witness`() throws {
         let boundary = try RFC_2046.Boundary("----=_Part_12345")
         let part1 = RFC_2046.BodyPart(
@@ -153,5 +154,6 @@ struct MultipartParserWitnessTests {
         let parsed = try RFC_2046.Multipart.parse(from: wire, parser: witness)
         #expect(parsed.parts.count == 1)
         #expect(parsed.parts.first?.content.description == "body")
+    }
     }
 }
