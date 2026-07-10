@@ -21,7 +21,7 @@ extension RFC_2046.Multipart {
     ///
     /// Multipart messages have specific structural requirements.
     /// These errors indicate violations of RFC 2046 multipart rules.
-    public enum Error: Swift.Error, Sendable, Equatable {
+    public enum Error: Swift.Error, Sendable, Equatable, Hashable {
         /// Multipart message has no body parts
         ///
         /// Per RFC 2046 Section 5.1, a multipart entity must have at least one body part.
