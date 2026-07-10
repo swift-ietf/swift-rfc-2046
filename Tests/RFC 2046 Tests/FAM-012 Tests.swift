@@ -106,54 +106,58 @@ struct BinaryOnlyRoundTripTests {
 extension RFC_2046.Multipart {
     @Suite("RFC 2046 [FAM-012] Multipart parser-witness")
     struct Test {
-    @Test func `Multipart serializes then re-parses via the parser witness`() throws {
-        let boundary = try RFC_2046.Boundary("----=_Part_12345")
-        let part1 = RFC_2046.BodyPart(
-            headers: RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8),
-            content: RFC_2046.BodyPart.Content("Hello!")
-        )
-        let part2 = RFC_2046.BodyPart(
-            headers: RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8),
-            content: RFC_2046.BodyPart.Content("World!")
-        )
-        let original = try RFC_2046.Multipart(
-            subtype: .alternative,
-            parts: [part1, part2],
-            boundary: boundary
-        )
+        @Test func `Multipart serializes then re-parses via the parser witness`() throws {
+            let boundary = try RFC_2046.Boundary("----=_Part_12345")
+            let part1 = RFC_2046.BodyPart(
+                headers: RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8),
+                content: RFC_2046.BodyPart.Content("Hello!")
+            )
+            let part2 = RFC_2046.BodyPart(
+                headers: RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8),
+                content: RFC_2046.BodyPart.Content("World!")
+            )
+            let original = try RFC_2046.Multipart(
+                subtype: .alternative,
+                parts: [part1, part2],
+                boundary: boundary
+            )
 
-        // Serialize context-free via the Binary.Serializable verb...
-        let wire = [Byte](original)
+            // Serialize context-free via the Binary.Serializable verb...
+            let wire = [Byte](original)
 
-        // ...then re-parse via the §11 parser-witness VALUE carrying the context.
-        let parsed = try RFC_2046.Multipart.parse(
-            from: wire,
-            parser: RFC_2046.Multipart.Parser(boundary: boundary, subtype: .alternative)
-        )
+            // ...then re-parse via the §11 parser-witness VALUE carrying the context.
+            let parsed = try RFC_2046.Multipart.parse(
+                from: wire,
+                parser: RFC_2046.Multipart.Parser(boundary: boundary, subtype: .alternative)
+            )
 
-        #expect(parsed.parts.count == 2)
-        #expect(parsed.boundary == boundary)
-        #expect(parsed.parts.first?.content.description == "Hello!")
-        #expect(parsed.parts.last?.content.description == "World!")
-    }
+            #expect(parsed.parts.count == 2)
+            #expect(parsed.boundary == boundary)
+            #expect(parsed.parts.first?.content.description == "Hello!")
+            #expect(parsed.parts.last?.content.description == "World!")
+        }
 
-    @Test func `Parser witness stores context and round-trips via the static entry`() throws {
-        let boundary = try RFC_2046.Boundary("b0undary")
-        let part = RFC_2046.BodyPart(
-            headers: RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8),
-            content: RFC_2046.BodyPart.Content("body")
-        )
-        let original = try RFC_2046.Multipart(subtype: .mixed, parts: [part], boundary: boundary)
-        let wire = [Byte](original)
+        @Test func `Parser witness stores context and round-trips via the static entry`() throws {
+            let boundary = try RFC_2046.Boundary("b0undary")
+            let part = RFC_2046.BodyPart(
+                headers: RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8),
+                content: RFC_2046.BodyPart.Content("body")
+            )
+            let original = try RFC_2046.Multipart(
+                subtype: .mixed,
+                parts: [part],
+                boundary: boundary
+            )
+            let wire = [Byte](original)
 
-        // The witness stores the parse CONTEXT (the boundary); the ergonomic static
-        // entry builds the `Byte.Input` cursor and delegates to the witness's
-        // `Parser.Protocol` cursor `parse(_:)`.
-        let witness = RFC_2046.Multipart.Parser(boundary: boundary)
-        #expect(witness.boundary == boundary)
-        let parsed = try RFC_2046.Multipart.parse(from: wire, parser: witness)
-        #expect(parsed.parts.count == 1)
-        #expect(parsed.parts.first?.content.description == "body")
-    }
+            // The witness stores the parse CONTEXT (the boundary); the ergonomic static
+            // entry builds the `Byte.Input` cursor and delegates to the witness's
+            // `Parser.Protocol` cursor `parse(_:)`.
+            let witness = RFC_2046.Multipart.Parser(boundary: boundary)
+            #expect(witness.boundary == boundary)
+            let parsed = try RFC_2046.Multipart.parse(from: wire, parser: witness)
+            #expect(parsed.parts.count == 1)
+            #expect(parsed.parts.first?.content.description == "body")
+        }
     }
 }
