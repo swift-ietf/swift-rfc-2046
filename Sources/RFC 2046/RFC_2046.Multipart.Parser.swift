@@ -87,6 +87,60 @@ extension RFC_2046.Multipart.Parser {
         let htab = ASCII.Code.htab.byte
         return line.dropFirst(delimiter.count).allSatisfy { $0 == space || $0 == htab }
     }
+
+    /// Builds a `BodyPart` from the raw byte region between two delimiter lines.
+    ///
+    /// F-004 — the header block ends at the first blank line; the content is the
+    /// EXACT remaining byte range (no line split-and-rejoin), so bare CR / LF
+    /// bytes inside binary / 8bit payloads are preserved.
+    static func bodyPart(
+        fromRegion region: [Byte]
+    ) throws(RFC_2046.Multipart.Error) -> RFC_2046.BodyPart {
+        let cr = ASCII.Code.cr.byte
+        let lf = ASCII.Code.lf.byte
+
+        // Locate the blank line separating headers from content.
+        var headerEnd = region.endIndex
+        var contentStart = region.endIndex
+        var index = region.startIndex
+        while index < region.endIndex {
+            let lineStart = index
+            var lineEnd = index
+            while lineEnd < region.endIndex, region[lineEnd] != cr, region[lineEnd] != lf {
+                lineEnd += 1
+            }
+            var next = lineEnd
+            if next < region.endIndex {
+                if region[next] == cr {
+                    next += 1
+                    if next < region.endIndex, region[next] == lf { next += 1 }
+                } else {
+                    next += 1
+                }
+            }
+            if lineStart == lineEnd {
+                // Blank line: headers end before it, content starts after it.
+                headerEnd = lineStart
+                contentStart = next
+                break
+            }
+            index = next
+        }
+
+        let headerBytes = [Byte](region[region.startIndex..<headerEnd])
+        let headers: RFC_2046.BodyPart.Headers
+        do throws(RFC_2046.BodyPart.Headers.Error) {
+            headers = try RFC_2046.BodyPart.Headers(ascii: headerBytes)
+        } catch {
+            throw RFC_2046.Multipart.Error.invalidBodyPart("Headers: \(error)")
+        }
+
+        let contentBytes =
+            contentStart < region.endIndex
+            ? [Byte](region[contentStart...])
+            : []
+        return RFC_2046.BodyPart(headers: headers, content: RFC_2046.BodyPart.Content(contentBytes))
+    }
 }
 
 extension RFC_2046.Multipart.Parser {
@@ -129,89 +183,91 @@ extension RFC_2046.Multipart.Parser {
         finalDelimiter.append(ASCII.Code.hyphen.byte)
         finalDelimiter.append(ASCII.Code.hyphen.byte)
 
+        // F-004 — RAW-BYTE delimiter scan. Part content is captured as the exact
+        // byte range between the line break following the header blank line and
+        // the line break preceding the next delimiter. Line splitting is used
+        // only to LOCATE delimiter lines and the header blank line — content
+        // bytes are never split-and-rejoined, so bare CR / LF bytes inside
+        // binary or 8bit payloads survive untouched.
         var parts: [RFC_2046.BodyPart] = []
         var preambleBytes: [Byte]?
         var epilogueBytes: [Byte]?
 
-        var preambleLines: [[Byte]] = []
-        var inPreamble = true
+        var regionStart = bytes.startIndex
+        var previousContentEnd = bytes.startIndex
+        var sawFirstDelimiter = false
         var inPart = false
-        var partHeaderLines: [[Byte]] = []
-        var partContentLines: [[Byte]] = []
-        var inHeaders = true
+        var epilogueStart: Int?
 
-        let crlf: [Byte] = [ASCII.Code.cr.byte, ASCII.Code.lf.byte]
+        var index = bytes.startIndex
+        let cr = ASCII.Code.cr.byte
+        let lf = ASCII.Code.lf.byte
 
-        for lineSlice in RFC_2046.lines(of: bytes) {
-            if Self.isDelimiterLine(lineSlice, delimiter: delimiter) {
-                // Start of new part
-                if inPart {
-                    let headerBytes = [Byte](partHeaderLines.joined(separator: crlf))
-                    let contentBytes = [Byte](partContentLines.joined(separator: crlf))
-                    let headers: RFC_2046.BodyPart.Headers
-                    do throws(RFC_2046.BodyPart.Headers.Error) {
-                        headers = try RFC_2046.BodyPart.Headers(ascii: headerBytes)
-                    } catch {
-                        throw RFC_2046.Multipart.Error.invalidBodyPart("Headers: \(error)")
-                    }
-                    parts.append(
-                        RFC_2046.BodyPart(
-                            headers: headers,
-                            content: RFC_2046.BodyPart.Content(contentBytes)
-                        )
-                    )
-                }
-                if inPreamble {
-                    preambleBytes =
-                        preambleLines.isEmpty
-                        ? nil : [Byte](preambleLines.joined(separator: crlf))
-                    inPreamble = false
-                }
-                inPart = true
-                inHeaders = true
-                partHeaderLines = []
-                partContentLines = []
-            } else if Self.isDelimiterLine(lineSlice, delimiter: finalDelimiter) {
-                // End of multipart
-                if inPart {
-                    let headerBytes = [Byte](partHeaderLines.joined(separator: crlf))
-                    let contentBytes = [Byte](partContentLines.joined(separator: crlf))
-                    let headers: RFC_2046.BodyPart.Headers
-                    do throws(RFC_2046.BodyPart.Headers.Error) {
-                        headers = try RFC_2046.BodyPart.Headers(ascii: headerBytes)
-                    } catch {
-                        throw RFC_2046.Multipart.Error.invalidBodyPart("Headers: \(error)")
-                    }
-                    parts.append(
-                        RFC_2046.BodyPart(
-                            headers: headers,
-                            content: RFC_2046.BodyPart.Content(contentBytes)
-                        )
-                    )
-                }
-                inPart = false
-            } else if inPart {
-                if inHeaders {
-                    if lineSlice.isEmpty {
-                        // Empty line ends headers, starts content
-                        inHeaders = false
-                    } else {
-                        partHeaderLines.append([Byte](lineSlice))
-                    }
+        // Walk lines with explicit byte offsets: (lineStart, contentEnd, next).
+        while index < bytes.endIndex {
+            let lineStart = index
+            var contentEnd = index
+            while contentEnd < bytes.endIndex, bytes[contentEnd] != cr, bytes[contentEnd] != lf {
+                contentEnd += 1
+            }
+            var next = contentEnd
+            if next < bytes.endIndex {
+                if bytes[next] == cr {
+                    next += 1
+                    if next < bytes.endIndex, bytes[next] == lf { next += 1 }
                 } else {
-                    partContentLines.append([Byte](lineSlice))
-                }
-            } else if inPreamble {
-                preambleLines.append([Byte](lineSlice))
-            } else {
-                // Epilogue - use separate appends to avoid intermediate allocations
-                if epilogueBytes == nil {
-                    epilogueBytes = [Byte](lineSlice)
-                } else {
-                    epilogueBytes!.append(contentsOf: crlf)
-                    epilogueBytes!.append(contentsOf: lineSlice)
+                    next += 1  // lone LF
                 }
             }
+
+            let line = bytes[lineStart..<contentEnd]
+            let isInterior = Self.isDelimiterLine(line, delimiter: delimiter)
+            let isFinal = !isInterior && Self.isDelimiterLine(line, delimiter: finalDelimiter)
+
+            if isInterior || isFinal {
+                // The region before this delimiter line, EXCLUDING the line
+                // break that precedes the delimiter (it belongs to the
+                // delimiter per RFC 2046 §5.1.1).
+                let region = [Byte](bytes[regionStart..<previousContentEnd])
+                if !sawFirstDelimiter {
+                    preambleBytes = region.isEmpty ? nil : region
+                    sawFirstDelimiter = true
+                } else if inPart {
+                    parts.append(try Self.bodyPart(fromRegion: region))
+                }
+                if isFinal {
+                    inPart = false
+                    epilogueStart = next
+                    break
+                }
+                inPart = true
+                regionStart = next
+                previousContentEnd = next
+            } else {
+                previousContentEnd = contentEnd
+            }
+            index = next
+        }
+
+        // Trailing part with no closing delimiter (lenient — mirrors the
+        // previous parser's behavior of not requiring the close-delimiter).
+        if inPart {
+            let region = [Byte](bytes[regionStart..<previousContentEnd])
+            parts.append(try Self.bodyPart(fromRegion: region))
+        }
+
+        // Everything after the close-delimiter line is the epilogue; strip a
+        // single trailing line break (the transport's final terminator).
+        if let start = epilogueStart, start < bytes.endIndex {
+            var end = bytes.endIndex
+            if end > start, bytes[end - 1] == lf {
+                end -= 1
+                if end > start, bytes[end - 1] == cr { end -= 1 }
+            } else if end > start, bytes[end - 1] == cr {
+                end -= 1
+            }
+            let region = [Byte](bytes[start..<end])
+            epilogueBytes = region.isEmpty ? nil : region
         }
 
         return try RFC_2046.Multipart(
