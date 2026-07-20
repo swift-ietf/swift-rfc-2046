@@ -212,8 +212,23 @@ extension RFC_2046.BodyPart.Headers: ASCII.Parseable {
         var contentTransferEncoding: RFC_2045.ContentTransferEncoding?
         var customHeaders: [RFC_5322.Header] = []
 
-        // Split header bytes into RFC 5322 header lines (CR / LF / CRLF).
+        // Split header bytes into physical lines (CR / LF / CRLF), then unfold
+        // folded headers per RFC 5322 §2.2.3 (F-008): a line starting with SP
+        // or HTAB is a continuation of the previous header line — the CRLF is
+        // removed, the leading whitespace is kept.
+        let space = ASCII.Code.space.byte
+        let htab = ASCII.Code.htab.byte
+        var logicalLines: [[Byte]] = []
         for line in RFC_2046.lines(of: [Byte](bytes)) where !line.isEmpty {
+            if let first = line.first, first == space || first == htab,
+                !logicalLines.isEmpty {
+                logicalLines[logicalLines.count - 1].append(contentsOf: line)
+            } else {
+                logicalLines.append([Byte](line))
+            }
+        }
+
+        for line in logicalLines {
             // Parse line as RFC_5322.Header using canonical transformation
             let header: RFC_5322.Header
             do throws(RFC_5322.Header.Error) {
