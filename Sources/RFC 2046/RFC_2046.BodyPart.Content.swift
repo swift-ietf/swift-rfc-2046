@@ -1,5 +1,7 @@
 public import Binary_Serializable_Primitives
 import INCITS_4_1986
+import RFC_2045
+import RFC_4648
 
 extension RFC_2046.BodyPart {
     /// Type-safe content for a body part
@@ -55,6 +57,40 @@ extension RFC_2046.BodyPart.Content {
     /// Creates content from a string's UTF-8 bytes.
     public init(_ string: some StringProtocol) {
         self.init([Byte](string.utf8))
+    }
+}
+
+// MARK: - Content-Transfer-Encoding decoding (F-001)
+
+extension RFC_2046.BodyPart.Content {
+    /// Decodes wire content bytes into canonical (decoded) content bytes per
+    /// the part's Content-Transfer-Encoding.
+    ///
+    /// F-001 — `Content` canonically stores DECODED bytes: serialization
+    /// applies the transfer encoding, so parse paths must invert it or the
+    /// domain is asymmetric and reparse-then-serialize double-encodes.
+    ///
+    /// - Returns: The decoded bytes, or `nil` if the wire content is not valid
+    ///   for the declared encoding.
+    static func decoding(
+        _ bytes: [Byte],
+        transferEncoding: RFC_2045.ContentTransferEncoding?
+    ) -> [Byte]? {
+        switch transferEncoding {
+        case .base64:
+            var codes: [ASCII.Code] = []
+            codes.reserveCapacity(bytes.count)
+            for byte in bytes {
+                guard byte.underlying < 0x80 else { return nil }
+                codes.append(ASCII.Code(unchecked: byte))
+            }
+            return RFC_4648.Base64.decode(codes)
+        case .quotedPrintable:
+            return RFC_2046.QuotedPrintable.decode(bytes)
+        default:
+            // 7bit / 8bit / binary / absent: identity.
+            return bytes
+        }
     }
 }
 

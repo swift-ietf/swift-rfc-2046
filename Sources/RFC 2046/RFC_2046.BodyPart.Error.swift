@@ -10,5 +10,9 @@ extension RFC_2046.BodyPart {
     public enum Error: Swift.Error, Sendable, Equatable {
         /// Invalid headers format
         case invalidHeaders(_ reason: String)
+
+        /// Content bytes are not valid for the declared Content-Transfer-Encoding
+        /// (F-001 — parse decodes transfer-encoded content to canonical bytes)
+        case invalidTransferEncodedContent(_ reason: String)
     }
 }

@@ -177,7 +177,20 @@ extension RFC_2046.BodyPart {
             contentBytes = []
         }
 
-        self.init(headers: headers, content: Content(contentBytes))
+        // F-001: Content canonically stores DECODED bytes — invert the
+        // Content-Transfer-Encoding applied by serialization.
+        guard
+            let decoded = Content.decoding(
+                contentBytes,
+                transferEncoding: headers.contentTransferEncoding
+            )
+        else {
+            throw Error.invalidTransferEncodedContent(
+                "content is not valid \(headers.contentTransferEncoding?.rawValue ?? "raw")"
+            )
+        }
+
+        self.init(headers: headers, content: Content(decoded))
     }
 }
 

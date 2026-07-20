@@ -139,7 +139,20 @@ extension RFC_2046.Multipart.Parser {
             contentStart < region.endIndex
             ? [Byte](region[contentStart...])
             : []
-        return RFC_2046.BodyPart(headers: headers, content: RFC_2046.BodyPart.Content(contentBytes))
+
+        // F-001: Content canonically stores DECODED bytes — invert the
+        // Content-Transfer-Encoding applied by serialization.
+        guard
+            let decoded = RFC_2046.BodyPart.Content.decoding(
+                contentBytes,
+                transferEncoding: headers.contentTransferEncoding
+            )
+        else {
+            throw RFC_2046.Multipart.Error.invalidBodyPart(
+                "content is not valid \(headers.contentTransferEncoding?.rawValue ?? "raw")"
+            )
+        }
+        return RFC_2046.BodyPart(headers: headers, content: RFC_2046.BodyPart.Content(decoded))
     }
 }
 
