@@ -72,6 +72,24 @@ extension RFC_2046.Multipart {
 }
 
 extension RFC_2046.Multipart.Parser {
+    /// RFC 2046 §5.1.1 delimiter-line recognition: the line consists of the
+    /// dash-boundary (`delimiter`) followed only by optional linear whitespace
+    /// (transport padding, SP / HTAB). Exact-equality matching would reject
+    /// padded delimiters that are valid on the wire (F-003).
+    static func isDelimiterLine(
+        _ line: ArraySlice<Byte>,
+        delimiter: [Byte]
+    ) -> Bool {
+        guard line.count >= delimiter.count,
+            line.prefix(delimiter.count).elementsEqual(delimiter)
+        else { return false }
+        let space = ASCII.Code.space.byte
+        let htab = ASCII.Code.htab.byte
+        return line.dropFirst(delimiter.count).allSatisfy { $0 == space || $0 == htab }
+    }
+}
+
+extension RFC_2046.Multipart.Parser {
     public typealias Input = Byte.Input
     public typealias Output = RFC_2046.Multipart
     public typealias Failure = RFC_2046.Multipart.Error
@@ -125,7 +143,7 @@ extension RFC_2046.Multipart.Parser {
         let crlf: [Byte] = [ASCII.Code.cr.byte, ASCII.Code.lf.byte]
 
         for lineSlice in RFC_2046.lines(of: bytes) {
-            if lineSlice.elementsEqual(delimiter) {
+            if Self.isDelimiterLine(lineSlice, delimiter: delimiter) {
                 // Start of new part
                 if inPart {
                     let headerBytes = [Byte](partHeaderLines.joined(separator: crlf))
@@ -153,7 +171,7 @@ extension RFC_2046.Multipart.Parser {
                 inHeaders = true
                 partHeaderLines = []
                 partContentLines = []
-            } else if lineSlice.elementsEqual(finalDelimiter) {
+            } else if Self.isDelimiterLine(lineSlice, delimiter: finalDelimiter) {
                 // End of multipart
                 if inPart {
                     let headerBytes = [Byte](partHeaderLines.joined(separator: crlf))
