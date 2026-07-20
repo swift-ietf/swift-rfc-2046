@@ -38,6 +38,10 @@ extension RFC_2046.Multipart {
 
         /// Invalid body part during parsing
         case invalidBodyPart(_ reason: String)
+
+        /// An additional Content-Type parameter value cannot be represented
+        /// in a header (non-ASCII, control, or unescapable bytes) — F-006
+        case invalidParameterValue(name: String, value: String)
     }
 }
 
@@ -56,6 +60,8 @@ extension RFC_2046.Multipart.Error: CustomStringConvertible {
             return "Invalid multipart subtype: '\(value)'"
         case .invalidBodyPart(let reason):
             return "Invalid body part: \(reason)"
+        case .invalidParameterValue(let name, let value):
+            return "Invalid Content-Type parameter value for '\(name)': '\(value)'"
         }
     }
 }

@@ -104,6 +104,17 @@ extension RFC_2046 {
                 throw RFC_2046.Multipart.Error.emptyParts
             }
 
+            // F-006: validate parameter values HERE (typed error) so
+            // `contentType` can stay non-throwing and build structurally.
+            for (name, value) in additionalParameters {
+                guard Self.isRepresentableParameterValue(value) else {
+                    throw RFC_2046.Multipart.Error.invalidParameterValue(
+                        name: name.rawValue,
+                        value: value
+                    )
+                }
+            }
+
             self.init(
                 __unchecked: (),
                 subtype: subtype,
@@ -155,23 +166,41 @@ extension RFC_2046 {
 // MARK: - Computed Properties
 
 extension RFC_2046.Multipart {
+    /// True when `value` can be carried as an RFC 2045 parameter value —
+    /// representable as a token or a quoted-string the serializer can emit
+    /// without escaping (printable ASCII, no CR/LF/controls, no `"` or `\`).
+    ///
+    /// F-006: enforced in `init` with a typed error so `contentType` can stay
+    /// non-throwing and be constructed structurally.
+    static func isRepresentableParameterValue(_ value: String) -> Bool {
+        value.utf8.allSatisfy { byte in
+            (0x20...0x7E).contains(byte)
+                && byte != UInt8(ascii: "\"")
+                && byte != UInt8(ascii: "\\")
+        }
+    }
+
     /// The Content-Type for this multipart message
     ///
     /// Includes boundary parameter and any additional parameters.
+    ///
+    /// F-006: constructed STRUCTURALLY from the validated fields — no
+    /// interpolate-then-reparse, no `try!`. `boundary` is validated by
+    /// `Boundary`, `subtype` by `Subtype`, and `additionalParameters` values
+    /// by `init` (`isRepresentableParameterValue`); canonical RFC 2045
+    /// parameter quoting is applied by `ContentType`'s serialization.
     public var contentType: RFC_2045.ContentType {
         var parameters: [RFC_2045.Parameter.Name: String] = [.boundary: boundary.rawValue]
 
         // Merge additional parameters from RFC extensions
         parameters.merge(additionalParameters) { _, new in new }
 
-        // Build content type string for parsing
-        var headerValue = "multipart/\(subtype.rawValue)"
-        for (key, value) in parameters.sorted(by: { $0.key < $1.key }) {
-            headerValue += "; \(key.rawValue)=\(value)"
-        }
-
-        // swiftlint:disable:next force_try
-        return try! RFC_2045.ContentType(headerValue)
+        return RFC_2045.ContentType(
+            __unchecked: (),
+            type: "multipart",
+            subtype: subtype.rawValue,
+            parameters: parameters
+        )
     }
 }
 
