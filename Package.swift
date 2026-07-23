@@ -44,6 +44,7 @@ let package = Package(
             name: "RFC 2046 Tests",
             dependencies: [
                 "RFC 2046",
+                .product(name: "RFC 2045", package: "swift-rfc-2045"),
             ]
         ),
     ],

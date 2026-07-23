@@ -23,11 +23,12 @@ import RFC_4648
 extension RFC_2046.Boundary {
     /// Generates a random multipart boundary.
     ///
-    /// Produces a boundary of the form `----=_Part_{hex}` where `hex` is 32
+    /// Produces a boundary of the form `----Part_{hex}` where `hex` is 32
     /// lowercase hexadecimal characters (16 random bytes, RFC 4648 Section 8
-    /// base 16 encoding). The result is 43 characters — within the RFC 2046
-    /// Section 5.1.1 limit of 70 — drawn exclusively from `bcharsnospace`,
-    /// and therefore never ends with whitespace.
+    /// base 16 encoding). The result is 41 characters — within the RFC 2046
+    /// Section 5.1.1 limit of 70 — drawn exclusively from both `bcharsnospace`
+    /// and the MIME token character set. It therefore never needs quoting as a
+    /// Content-Type boundary parameter and never ends with whitespace.
     ///
     /// The value is constructed through the validating initializer, so the
     /// grammar guarantee is checked, not assumed.
@@ -36,7 +37,7 @@ extension RFC_2046.Boundary {
     ///
     /// ```swift
     /// let boundary = RFC_2046.Boundary.random()
-    /// // ----=_Part_a3f5d8b2c1e4f6a7b9d0c2e5f8a1b3d4
+    /// // ----Part_a3f5d8b2c1e4f6a7b9d0c2e5f8a1b3d4
     /// ```
     ///
     /// ## RFC References
@@ -54,7 +55,7 @@ extension RFC_2046.Boundary {
     /// generator yields a reproducible boundary, which is useful for testing.
     ///
     /// - Parameter generator: The random number generator supplying entropy.
-    /// - Returns: A validated boundary of the form `----=_Part_{32 hex}`.
+    /// - Returns: A validated boundary of the form `----Part_{32 hex}`.
     public static func random(
         using generator: inout some RandomNumberGenerator
     ) -> Self {
@@ -71,10 +72,10 @@ extension RFC_2046.Boundary {
         let hexCodes: [ASCII.Code] = RFC_4648.Hex.encode(bytes, uppercase: false)
         let hex = String(decoding: hexCodes, as: UTF8.self)
 
-        do {
-            return try Self("----=_Part_\(hex)")
+        do throws(RFC_2046.Boundary.Error) {
+            return try Self("----Part_\(hex)")
         } catch {
-            // Unreachable: 43 characters of bcharsnospace, no trailing space.
+            // Unreachable: 41 characters of bcharsnospace, no trailing space.
             fatalError("RFC_2046.Boundary.random() produced an invalid boundary: \(error)")
         }
     }

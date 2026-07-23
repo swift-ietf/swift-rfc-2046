@@ -57,7 +57,7 @@ let multipart = try RFC_2046.Multipart.alternative(
 
 // Get Content-Type header
 let contentType = multipart.contentType.headerValue
-// "multipart/alternative; boundary=----=_Part_<UUID>"
+// "multipart/alternative; boundary=----Part_a3f5d8b2c1e4f6a7b9d0c2e5f8a1b3d4"
 
 // Render the complete multipart body
 let body = multipart.render()
