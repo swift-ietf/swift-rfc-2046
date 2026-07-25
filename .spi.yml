@@ -2,4 +2,4 @@ version: 1
 builder:
   configs:
   - documentation_targets:
-    - EmailAddress
+    - RFC 2046
