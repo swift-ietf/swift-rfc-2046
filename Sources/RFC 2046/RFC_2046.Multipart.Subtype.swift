@@ -101,7 +101,11 @@ extension RFC_2046.Multipart.Subtype: Swift.RawRepresentable {
     /// the `RawRepresentable`+`Codable` pair synthesizes the single-value JSON
     /// form.)
     public init?(rawValue: String) {
-        try? self.init(rawValue)
+        do throws(RFC_2046.Multipart.Subtype.Error) {
+            try self.init(rawValue)
+        } catch {
+            return nil
+        }
     }
 }
 

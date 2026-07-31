@@ -150,7 +150,11 @@ extension RFC_2046.Boundary: Swift.RawRepresentable {
     /// the `RawRepresentable`+`Codable` pair synthesizes the single-value JSON
     /// form the `Codable` tests assert.)
     public init?(rawValue: String) {
-        try? self.init(rawValue)
+        do throws(RFC_2046.Boundary.Error) {
+            try self.init(rawValue)
+        } catch {
+            return nil
+        }
     }
 }
 

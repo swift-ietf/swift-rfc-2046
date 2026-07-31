@@ -177,8 +177,10 @@ extension RFC_2046.Multipart.Parser {
         // Drain the cursor into an owned byte buffer (whole-buffer grammar).
         var bytes: [Byte] = []
         while !input.isEmpty {
-            guard let byte = try? input.advance() else { break }
-            bytes.append(byte)
+            // `advance()` only throws when the cursor is empty, which the loop
+            // condition just ruled out — the precondition is provably guaranteed.
+            // swiftlint:disable:next force_try - reason: [IMPL-108] precondition checked by the loop guard directly above
+            bytes.append(try! input.advance())
         }
 
         // MIME delimiters: "--boundary" and the closing "--boundary--".

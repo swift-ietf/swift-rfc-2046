@@ -32,6 +32,7 @@ extension RFC_2046.BodyPart.Headers.Error: CustomStringConvertible {
         switch self {
         case .invalidHeaderLine(let line):
             return "Invalid header line (missing ':'): '\(line)'"
+
         case .emptyHeaderName:
             return "Header name cannot be empty"
         }

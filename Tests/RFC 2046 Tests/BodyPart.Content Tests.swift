@@ -60,7 +60,11 @@ extension RFC_2046.BodyPart.Content {
             let binaryPayload: [Byte] = [0x00, 0x01, 0xFE, 0xFF]
             let base64Part = RFC_2046.BodyPart(
                 headers: RFC_2046.BodyPart.Headers(
-                    contentType: .init(__unchecked: (), type: "application", subtype: "octet-stream"),
+                    contentType: .init(
+                        __unchecked: (),
+                        type: "application",
+                        subtype: "octet-stream"
+                    ),
                     contentTransferEncoding: .base64
                 ),
                 content: RFC_2046.BodyPart.Content(binaryPayload)

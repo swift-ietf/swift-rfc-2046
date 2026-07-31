@@ -75,10 +75,12 @@ extension RFC_2046.BodyPart: Binary.Serializable {
                 // Base64.encode emits [ASCII.Code]; lift the ASCII codes into the
                 // Byte stream (a transfer-ENCODING, not a sub-part codec verb).
                 buffer.append(contentsOf: RFC_4648.Base64.encode(contentBytes).map(\.byte))
+
             case .quotedPrintable:
                 // F-002: RFC 2045 §6.7 quoted-printable encoding (interim local
                 // codec until swift-rfc-2045 owns it).
                 buffer.append(contentsOf: RFC_2046.QuotedPrintable.encode(contentBytes))
+
             default:
                 // 7bit, 8bit, binary: use raw content
                 buffer.append(contentsOf: contentBytes)

@@ -95,7 +95,13 @@ extension RFC_2046.Multipart.Parser {
         func `Round-trip preserves binary content containing lone terminators`() throws {
             let payload: [Byte] = [0x00, 0x0A, 0x0D, 0x41, 0x0D, 0x0A, 0x42, 0x0A]
             let part = RFC_2046.BodyPart(
-                headers: RFC_2046.BodyPart.Headers(contentType: .init(__unchecked: (), type: "application", subtype: "octet-stream")),
+                headers: RFC_2046.BodyPart.Headers(
+                    contentType: .init(
+                        __unchecked: (),
+                        type: "application",
+                        subtype: "octet-stream"
+                    )
+                ),
                 content: RFC_2046.BodyPart.Content(payload)
             )
             let boundary = try RFC_2046.Boundary("xyz-boundary")

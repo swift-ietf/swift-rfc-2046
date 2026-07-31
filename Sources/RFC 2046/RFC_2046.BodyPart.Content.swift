@@ -85,8 +85,10 @@ extension RFC_2046.BodyPart.Content {
                 codes.append(ASCII.Code(unchecked: byte))
             }
             return RFC_4648.Base64.decode(codes)
+
         case .quotedPrintable:
             return RFC_2046.QuotedPrintable.decode(bytes)
+
         default:
             // 7bit / 8bit / binary / absent: identity.
             return bytes

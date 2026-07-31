@@ -221,7 +221,8 @@ extension RFC_2046.BodyPart.Headers: ASCII.Parseable {
         var logicalLines: [[Byte]] = []
         for line in RFC_2046.lines(of: [Byte](bytes)) where !line.isEmpty {
             if let first = line.first, first == space || first == htab,
-                !logicalLines.isEmpty {
+                !logicalLines.isEmpty
+            {
                 logicalLines[logicalLines.count - 1].append(contentsOf: line)
             } else {
                 logicalLines.append([Byte](line))
@@ -245,11 +246,28 @@ extension RFC_2046.BodyPart.Headers: ASCII.Parseable {
 
             switch header.name {
             case .contentDisposition:
-                contentDisposition = try? RFC_2183.ContentDisposition(ascii: valueBytes)
+                do throws(RFC_2183.ContentDisposition.Error) {
+                    contentDisposition = try RFC_2183.ContentDisposition(ascii: valueBytes)
+                } catch {
+                    contentDisposition = nil
+                }
+
             case .contentType:
-                contentType = try? RFC_2045.ContentType(ascii: valueBytes)
+                do throws(RFC_2045.ContentType.Error) {
+                    contentType = try RFC_2045.ContentType(ascii: valueBytes)
+                } catch {
+                    contentType = nil
+                }
+
             case .contentTransferEncoding:
-                contentTransferEncoding = try? RFC_2045.ContentTransferEncoding(ascii: valueBytes)
+                do throws(RFC_2045.ContentTransferEncoding.Error) {
+                    contentTransferEncoding = try RFC_2045.ContentTransferEncoding(
+                        ascii: valueBytes
+                    )
+                } catch {
+                    contentTransferEncoding = nil
+                }
+
             default:
                 customHeaders.append(header)
             }
@@ -356,10 +374,13 @@ extension RFC_2046.BodyPart.Headers {
             switch headerName {
             case .contentDisposition:
                 return contentDisposition.map(\.description)
+
             case .contentType:
                 return contentType.map(\.description)
+
             case .contentTransferEncoding:
                 return contentTransferEncoding.map(\.description)
+
             default:
                 return custom[headerName]
             }
@@ -367,17 +388,32 @@ extension RFC_2046.BodyPart.Headers {
         set {
             switch headerName {
             case .contentDisposition:
-                contentDisposition = newValue.flatMap {
-                    try? RFC_2183.ContentDisposition(ascii: [Byte]($0.utf8))
+                contentDisposition = newValue.flatMap { value in
+                    do throws(RFC_2183.ContentDisposition.Error) {
+                        return try RFC_2183.ContentDisposition(ascii: [Byte](value.utf8))
+                    } catch {
+                        return nil
+                    }
                 }
+
             case .contentType:
-                contentType = newValue.flatMap {
-                    try? RFC_2045.ContentType(ascii: [Byte]($0.utf8))
+                contentType = newValue.flatMap { value in
+                    do throws(RFC_2045.ContentType.Error) {
+                        return try RFC_2045.ContentType(ascii: [Byte](value.utf8))
+                    } catch {
+                        return nil
+                    }
                 }
+
             case .contentTransferEncoding:
-                contentTransferEncoding = newValue.flatMap {
-                    try? RFC_2045.ContentTransferEncoding(ascii: [Byte]($0.utf8))
+                contentTransferEncoding = newValue.flatMap { value in
+                    do throws(RFC_2045.ContentTransferEncoding.Error) {
+                        return try RFC_2045.ContentTransferEncoding(ascii: [Byte](value.utf8))
+                    } catch {
+                        return nil
+                    }
                 }
+
             default:
                 custom[headerName] = newValue
             }

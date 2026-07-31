@@ -92,7 +92,8 @@ extension RFC_2046 {
                     let next = index + 1
                     // Soft line break: "=" CRLF (or lenient "=" LF).
                     if next < bytes.endIndex, bytes[next] == cr,
-                        next + 1 < bytes.endIndex, bytes[next + 1] == lf {
+                        next + 1 < bytes.endIndex, bytes[next + 1] == lf
+                    {
                         index = next + 2
                         continue
                     }
