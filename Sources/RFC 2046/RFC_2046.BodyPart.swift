@@ -123,7 +123,7 @@ extension RFC_2046.BodyPart {
     ///
     /// - Parameter bytes: The body part bytes (headers + blank line + content)
     /// - Throws: `RFC_2046.BodyPart.Error` if parsing fails
-    public init<Bytes: Collection>(binary bytes: Bytes) throws(Error)
+    public init<Bytes: Swift.Collection>(binary bytes: Bytes) throws(Error)
     where Bytes.Element == Byte {
         let byteArray = [Byte](bytes)
 

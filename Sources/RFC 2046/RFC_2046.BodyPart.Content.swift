@@ -50,7 +50,7 @@ extension RFC_2046.BodyPart.Content {
     ///
     /// No validation: a body-part payload is an arbitrary sequence of bytes
     /// (hence non-throwing).
-    public init<Bytes: Collection>(binary bytes: Bytes) where Bytes.Element == Byte {
+    public init<Bytes: Swift.Collection>(binary bytes: Bytes) where Bytes.Element == Byte {
         self.init([Byte](bytes))
     }
 

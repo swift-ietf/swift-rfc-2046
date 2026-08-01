@@ -146,7 +146,7 @@ extension RFC_2046.Multipart.Subtype: ASCII.Parseable {
     ///
     /// - Parameter bytes: The ASCII byte representation
     /// - Throws: `RFC_2046.Multipart.Subtype.Error` if empty
-    public init<Bytes: Collection>(ascii bytes: Bytes) throws(Error)
+    public init<Bytes: Swift.Collection>(ascii bytes: Bytes) throws(Error)
     where Bytes.Element == Byte {
         guard !bytes.isEmpty else {
             throw Error.empty

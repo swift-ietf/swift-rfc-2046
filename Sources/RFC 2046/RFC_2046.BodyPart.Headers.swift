@@ -205,7 +205,7 @@ extension RFC_2046.BodyPart.Headers: ASCII.Parseable {
     ///
     /// - Parameter bytes: The ASCII byte representation of headers
     /// - Throws: `RFC_2046.BodyPart.Headers.Error` if parsing fails
-    public init<Bytes: Collection>(ascii bytes: Bytes) throws(Error)
+    public init<Bytes: Swift.Collection>(ascii bytes: Bytes) throws(Error)
     where Bytes.Element == Byte {
         var contentDisposition: RFC_2183.ContentDisposition?
         var contentType: RFC_2045.ContentType?
