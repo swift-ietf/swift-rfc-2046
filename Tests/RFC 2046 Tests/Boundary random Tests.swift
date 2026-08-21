@@ -126,9 +126,6 @@ struct `Boundary.random` {
     }
 }
 
-// MARK: - Test generators
-
-/// Deterministic generator counting upward from zero.
 private struct Counting {
     var state: UInt64 = 0
 }
@@ -140,7 +137,6 @@ extension Counting: RandomNumberGenerator {
     }
 }
 
-/// Generator returning a constant word.
 private struct Constant {
     let value: UInt64
 }

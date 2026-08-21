@@ -6,8 +6,6 @@ import Testing
 
 @testable import RFC_2046
 
-// MARK: - BodyPart Core Initialization
-
 @Suite
 struct `BodyPart - Core initialization` {
     @Test
@@ -15,7 +13,7 @@ struct `BodyPart - Core initialization` {
         let headers = RFC_2046.BodyPart.Headers(
             contentType: .textPlainUTF8
         )
-        let content = RFC_2046.BodyPart.Content([72, 101, 108, 108, 111])  // "Hello"
+        let content = RFC_2046.BodyPart.Content([72, 101, 108, 108, 111])
 
         let part = RFC_2046.BodyPart(headers: headers, content: content)
 
@@ -53,8 +51,6 @@ struct `BodyPart - Core initialization` {
     }
 }
 
-// MARK: - Content Type
-
 @Suite
 struct `BodyPart Content - Serialization` {
     @Test
@@ -80,8 +76,6 @@ struct `BodyPart Content - Serialization` {
         #expect(content.rawValue == bytes)
     }
 }
-
-// MARK: - BodyPart Serialization
 
 @Suite
 struct `BodyPart - Serialization` {
@@ -145,8 +139,6 @@ struct `BodyPart - Serialization` {
     }
 }
 
-// MARK: - BodyPart Parsing
-
 @Suite
 struct `BodyPart - Parsing` {
     @Test
@@ -176,8 +168,6 @@ struct `BodyPart - Parsing` {
         #expect([Byte](part.content).isEmpty)
     }
 }
-
-// MARK: - Round-Trip (Isomorphism)
 
 @Suite
 struct `BodyPart - Round-trip` {
@@ -218,8 +208,6 @@ struct `BodyPart - Round-trip` {
         #expect([Byte](parsed.content).isEmpty)
     }
 }
-
-// MARK: - Protocol Conformance
 
 @Suite
 struct `BodyPart - Hashable and Equatable` {

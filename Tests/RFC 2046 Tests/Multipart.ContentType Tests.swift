@@ -1,33 +1,12 @@
-// ===----------------------------------------------------------------------===//
-//
-// This source file is part of the swift-rfc-2046 open source project
-//
-// Copyright (c) 2025 Coen ten Thije Boonkkamp
-// Licensed under Apache License v2.0
-//
-// See LICENSE.txt for license information
-//
-// SPDX-License-Identifier: Apache-2.0
-//
-// ===----------------------------------------------------------------------===//
-
-// Multipart.ContentType Tests.swift
-// swift-rfc-2046
-
 import RFC_2045
 import Testing
 
 @testable import RFC_2046
 
-// MARK: - [INST-TEST-013] Unit sub-suite on the affected source type
-
 extension RFC_2046.Multipart {
     @Suite
     struct Unit {
-        // F-006 — parameter values that cannot be represented in a
-        // Content-Type header (CR/LF injection, controls, quotes) must be
-        // rejected with a typed error at init, not interpolated into a header
-        // string and force-parsed.
+
         @Test
         func `Init rejects additional parameter values that cannot be represented`() throws {
             let part = RFC_2046.BodyPart(
@@ -47,8 +26,6 @@ extension RFC_2046.Multipart {
             }
         }
 
-        // F-006 — contentType is constructed structurally, without a
-        // serialize-then-reparse round trip; values needing quoting survive.
         @Test
         func `ContentType is built structurally with parameters intact`() throws {
             let part = RFC_2046.BodyPart(

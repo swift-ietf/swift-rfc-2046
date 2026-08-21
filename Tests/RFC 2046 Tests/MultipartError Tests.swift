@@ -2,8 +2,6 @@ import Testing
 
 @testable import RFC_2046
 
-// MARK: - Boundary.Error Tests
-
 @Suite
 struct `Boundary.Error - Error cases` {
     @Test
@@ -80,8 +78,6 @@ struct `Boundary.Error - Equatable` {
     }
 }
 
-// MARK: - Multipart.Error Tests
-
 @Suite
 struct `Multipart.Error - Error cases` {
     @Test
@@ -142,8 +138,6 @@ struct `Multipart.Error - Sendable conformance` {
     }
 }
 
-// MARK: - Subtype.Error Tests
-
 @Suite
 struct `Subtype.Error - Error cases` {
     @Test
@@ -165,8 +159,6 @@ struct `Subtype.Error - Error cases` {
         #expect(subtype.rawValue == "alternative")
     }
 }
-
-// MARK: - Headers.Error Tests
 
 @Suite
 struct `Headers.Error - Error cases` {
@@ -190,8 +182,6 @@ struct `Headers.Error - Error cases` {
         #expect(headers.contentType != nil)
     }
 }
-
-// MARK: - Integration Tests
 
 @Suite
 struct `Error - Integration` {
@@ -221,7 +211,7 @@ struct `Error - Integration` {
             _ = try RFC_2046.Multipart(
                 subtype: .mixed,
                 parts: [part],
-                boundary: .init("")  // Invalid boundary
+                boundary: .init("")
             )
         }
     }

@@ -1,27 +1,9 @@
-//
-//  FAM-012 Tests.swift
-//  swift-rfc-2046
-//
-//  [FAM-012] format-sibling drain coverage:
-//  - dual-sibling conformers: ASCII==Binary verb equivalence (escape/encode guard);
-//  - Binary-only (clause-2) conformers: round-trip through the Byte verb + parse init;
-//  - the Multipart context-as-parser-witness shape (§11, NEW SHAPE — HELD for seat).
-//
-
 import Foundation
 import RFC_2183
 import Testing
 
 @testable import RFC_2046
 
-// MARK: - [FAM-012] ASCII==Binary equivalence (dual-sibling conformers)
-
-/// Each dual-sibling conformer's `ASCII.Serializable` verb (emitting `ASCII.Code`)
-/// and `Binary.Serializable` verb (emitting `Byte`) MUST produce byte-identical
-/// output — the guard against the two independent (no-`.serialized`-detour) bodies
-/// drifting apart. `Content`, `Headers`, `BodyPart`, and `Multipart` are byte-domain /
-/// `Binary`-only, so they have no ASCII verb to compare and are exercised by the
-/// round-trip suite below instead.
 @Suite("RFC 2046 [FAM-012] ASCII==Binary Equivalence")
 struct ASCIIBinaryEquivalenceTests {
     @Test func `Boundary verbs agree`() throws {
@@ -45,9 +27,7 @@ struct ASCIIBinaryEquivalenceTests {
     }
 
     @Test func `BodyPart.Headers verbs agree`() {
-        // Upgraded to dual-sibling once RFC_2183.ContentDisposition drained — the
-        // ContentDisposition branch now composes that sub-part's ASCII / Byte verbs,
-        // so this guards the two Headers bodies (incl. every sub-part) against drift.
+
         let value = RFC_2046.BodyPart.Headers(
             contentDisposition: .inline(),
             contentType: .textPlainUTF8,
@@ -61,10 +41,6 @@ struct ASCIIBinaryEquivalenceTests {
     }
 }
 
-// MARK: - [FAM-012] Binary-only round-trips (clause-2 + transitional)
-
-/// Binary-only conformers have a single `Byte` verb; the round-trip through the
-/// verb and the byte-domain parse entry is the drift guard.
 @Suite("RFC 2046 [FAM-012] Binary-only Round-trips")
 struct BinaryOnlyRoundTripTests {
     @Test func `Content round-trips (binary verb + init(binary:))`() {
@@ -98,11 +74,6 @@ struct BinaryOnlyRoundTripTests {
     }
 }
 
-// MARK: - [FAM-012] §11 Multipart context-as-parser-witness (NEW SHAPE — HELD)
-
-/// The context-bearing conformer: `Multipart` serializes context-free (the value
-/// carries its own boundary) but PARSES with the boundary as out-of-band context,
-/// carried by a parser-witness VALUE the caller builds and passes — the §11 shape.
 extension RFC_2046.Multipart {
     @Suite("RFC 2046 [FAM-012] Multipart parser-witness")
     struct Test {
@@ -122,10 +93,8 @@ extension RFC_2046.Multipart {
                 boundary: boundary
             )
 
-            // Serialize context-free via the Binary.Serializable verb...
             let wire = [Byte](original)
 
-            // ...then re-parse via the §11 parser-witness VALUE carrying the context.
             let parsed = try RFC_2046.Multipart.parse(
                 from: wire,
                 parser: RFC_2046.Multipart.Parser(boundary: boundary, subtype: .alternative)
@@ -150,9 +119,6 @@ extension RFC_2046.Multipart {
             )
             let wire = [Byte](original)
 
-            // The witness stores the parse CONTEXT (the boundary); the ergonomic static
-            // entry builds the `Byte.Input` cursor and delegates to the witness's
-            // `Parser.Protocol` cursor `parse(_:)`.
             let witness = RFC_2046.Multipart.Parser(boundary: boundary)
             #expect(witness.boundary == boundary)
             let parsed = try RFC_2046.Multipart.parse(from: wire, parser: witness)

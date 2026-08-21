@@ -6,8 +6,6 @@ import Testing
 
 @testable import RFC_2046
 
-// MARK: - Headers Initialization
-
 @Suite
 struct `BodyPart.Headers - Initialization` {
     @Test
@@ -31,7 +29,7 @@ struct `BodyPart.Headers - Initialization` {
         #expect(headers.contentDisposition == .inline())
         #expect(headers.contentType == .textPlainUTF8)
         #expect(headers.contentTransferEncoding == .sevenBit)
-        //        #expect(try headers[.init("X-Custom")] == "value")
+
     }
 
     @Test
@@ -61,8 +59,6 @@ struct `BodyPart.Headers - Initialization` {
         #expect(headers.custom.count == 2)
     }
 }
-
-// MARK: - Headers Parsing from Bytes
 
 @Suite
 struct `BodyPart.Headers - Parsing from bytes` {
@@ -130,7 +126,7 @@ struct `BodyPart.Headers - Parsing from bytes` {
         let headers = try RFC_2046.BodyPart.Headers(ascii: bytes)
 
         #expect(headers.contentType != nil)
-        //        #expect(try headers[.init("X-Custom")] == "value")
+
     }
 
     @Test
@@ -138,7 +134,6 @@ struct `BodyPart.Headers - Parsing from bytes` {
         let bytes = [Byte]("Content-Type: invalid syntax".utf8)
         let headers = try RFC_2046.BodyPart.Headers(ascii: bytes)
 
-        // Invalid content type should be ignored, not crash
         #expect(headers.contentType == nil)
     }
 
@@ -164,78 +159,6 @@ struct `BodyPart.Headers - Parsing from bytes` {
         }
     }
 }
-
-// MARK: - Headers from RFC_5322.Header Array
-
-// @Suite
-// struct `BodyPart.Headers - Initialization from header array` {
-//    @Test
-//    func `Empty array creates empty headers`() throws {
-//        let headers = try RFC_2046.BodyPart.Headers([])
-//
-//        #expect(headers.contentDisposition == nil)
-//        #expect(headers.contentType == nil)
-//        #expect(headers.contentTransferEncoding == nil)
-//        #expect(headers.custom.isEmpty)
-//    }
-//
-//    @Test
-//    func `Content-Type header is recognized`() throws {
-//        let headerArray: [RFC_5322.Header] = try [
-//            RFC_5322.Header(name: .contentType, value: .init("text/plain; charset=UTF-8")),
-//        ]
-//        let headers = try RFC_2046.BodyPart.Headers(headerArray)
-//
-//        #expect(headers.contentType?.type == "text")
-//        #expect(headers.contentType?.subtype == "plain")
-//    }
-//
-//    @Test
-//    func `Content-Disposition header is recognized`() throws {
-//        let headerArray: [RFC_5322.Header] = try [
-//            RFC_5322.Header(name: .contentDisposition, value: .init("attachment; filename=\"document.pdf\"")),
-//        ]
-//        let headers = try RFC_2046.BodyPart.Headers(headerArray)
-//
-//        #expect(headers.contentDisposition != nil)
-//    }
-//
-//    @Test
-//    func `Content-Transfer-Encoding header is recognized`() throws {
-//        let headerArray: [RFC_5322.Header] = try [
-//            RFC_5322.Header(name: .contentTransferEncoding, value: .init("base64")),
-//        ]
-//        let headers = try RFC_2046.BodyPart.Headers(headerArray)
-//
-//        #expect(headers.contentTransferEncoding == .base64)
-//    }
-//
-//    @Test
-//    func `Custom headers are preserved`() throws {
-//        let headerArray: [RFC_5322.Header] = try [
-//            RFC_5322.Header(name: .init("X-Custom-Header"), value: .init("custom-value")),
-//            RFC_5322.Header(name: .init("X-Another"), value: .init("another-value")),
-//        ]
-//        let headers = try RFC_2046.BodyPart.Headers(headerArray)
-//
-////        #expect(try headers[.init("X-Custom-Header")] == "custom-value")
-////        #expect(try headers[.init("X-Another")] == "another-value")
-//    }
-//
-//    @Test
-//    func `Mixed standard and custom headers`() throws {
-//        let headerArray: [RFC_5322.Header] = try [
-//            RFC_5322.Header(name: .contentType, value: .init("text/plain")),
-//            RFC_5322.Header(name: .init("X-Custom"), value: .init("value")),
-//        ]
-//        let headers = try RFC_2046.BodyPart.Headers(headerArray)
-//
-//        #expect(headers.contentType != nil)
-////        #expect(try headers[.init("X-Custom")] == "value")
-//    }
-// }
-
-// MARK: - Headers Serialization
 
 @Suite
 struct `BodyPart.Headers - Byte serialization` {
@@ -328,8 +251,6 @@ struct `BodyPart.Headers - Byte serialization` {
     }
 }
 
-// MARK: - Headers Round-trip
-
 @Suite
 struct `BodyPart.Headers - Round-trip serialization` {
     @Test
@@ -386,11 +307,9 @@ struct `BodyPart.Headers - Round-trip serialization` {
         #expect(parsed.contentDisposition != nil)
         #expect(parsed.contentType != nil)
         #expect(parsed.contentTransferEncoding == .quotedPrintable)
-        //        #expect(try parsed[.init("X-Custom")] == "value")
+
     }
 }
-
-// MARK: - Subscript Access
 
 @Suite
 struct `BodyPart.Headers - Subscript access` {
@@ -458,77 +377,6 @@ struct `BodyPart.Headers - Subscript access` {
         #expect(headers.contentType == nil)
     }
 }
-
-// MARK: - Convenience Constructors
-//
-// @Suite
-// struct `BodyPart.Headers - Form data text field` {
-//    @Test
-//    func `Form data text field creates correct headers`() {
-//        let headers = RFC_2046.BodyPart.Headers.formDataTextField(name: "username")
-//
-//        #expect(headers.contentDisposition != nil)
-//        #expect(headers.contentType == nil)
-//        #expect(headers.contentTransferEncoding == nil)
-//    }
-//
-//    @Test
-//    func `Form data text field with special characters`() {
-//        let headers = RFC_2046.BodyPart.Headers.formDataTextField(name: "user-name")
-//
-//        #expect(headers.contentDisposition != nil)
-//    }
-// }
-
-// @Suite
-// struct `BodyPart.Headers - Form data file` {
-//    @Test
-//    func `Form data file creates correct headers`() throws {
-//        let headers = try RFC_2046.BodyPart.Headers.formDataFile(
-//            name: "avatar",
-//            filename: .init("photo.jpg")
-//        )
-//
-//        #expect(headers.contentDisposition != nil)
-//        #expect(headers.contentType == nil) // No default content type
-//    }
-//
-//    @Test
-//    func `Form data file with content type`() throws {
-//        let headers = try RFC_2046.BodyPart.Headers.formDataFile(
-//            name: "avatar",
-//            filename: .init("photo.jpg"),
-//            contentType: .imageJPEG
-//        )
-//
-//        #expect(headers.contentDisposition != nil)
-//        #expect(headers.contentType != nil)
-//        #expect(headers.contentType?.type == "image")
-//        #expect(headers.contentType?.subtype == "jpeg")
-//    }
-//
-//    @Test
-//    func `Form data file with filename containing spaces`() throws {
-//        let headers = try RFC_2046.BodyPart.Headers.formDataFile(
-//            name: "document",
-//            filename: .init("my document.pdf")
-//        )
-//
-//        #expect(headers.contentDisposition != nil)
-//    }
-//
-//    @Test
-//    func `Form data file with special characters in filename`() throws {
-//        let headers = try RFC_2046.BodyPart.Headers.formDataFile(
-//            name: "file",
-//            filename: .init("document-v1.2.pdf")
-//        )
-//
-//        #expect(headers.contentDisposition != nil)
-//    }
-// }
-
-// MARK: - Headers Protocol Conformance
 
 @Suite
 struct `BodyPart.Headers - Hashable and Equatable` {

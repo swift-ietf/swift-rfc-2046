@@ -1,51 +1,20 @@
-// ===----------------------------------------------------------------------===//
-//
-// This source file is part of the swift-rfc-2046 open source project
-//
-// Copyright (c) 2025 Coen ten Thije Boonkkamp
-// Licensed under Apache License v2.0
-//
-// See LICENSE.txt for license information
-//
-// SPDX-License-Identifier: Apache-2.0
-//
-// ===----------------------------------------------------------------------===//
-
-// RFC_2046.Multipart.Error.swift
-// swift-rfc-2046
-
 extension RFC_2046.Multipart {
-    /// Errors that can occur when working with multipart messages
-    ///
-    /// ## RFC 2046 Section 5.1
-    ///
-    /// Multipart messages have specific structural requirements.
-    /// These errors indicate violations of RFC 2046 multipart rules.
+
     public enum Error: Swift.Error, Sendable, Equatable, Hashable {
-        /// Multipart message has no body parts
-        ///
-        /// Per RFC 2046 Section 5.1, a multipart entity must have at least one body part.
+
         case emptyParts
 
-        /// Invalid format during parsing
         case invalidFormat(_ reason: String)
 
-        /// Missing required boundary parameter
         case missingBoundary
 
-        /// Invalid subtype value
         case invalidSubtype(_ value: String)
 
-        /// Invalid body part during parsing
         case invalidBodyPart(_ reason: String)
 
-        /// An additional Content-Type parameter value cannot be represented
-        /// in a header (non-ASCII, control, or unescapable bytes) — F-006
         case invalidParameterValue(name: String, value: String)
     }
 }
-
-// MARK: - CustomStringConvertible
 
 extension RFC_2046.Multipart.Error: CustomStringConvertible {
     public var description: String {
