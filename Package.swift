@@ -22,19 +22,19 @@ let package = Package(
         .package(url: "https://github.com/swift-ietf/swift-rfc-4648.git", branch: "main"),
         .package(url: "https://github.com/swift-ietf/swift-rfc-5322.git", branch: "main"),
         .package(
-            url: "https://github.com/swift-primitives/swift-byte-collection-primitives.git",
+            url: "https://github.com/swift-molecules/swift-byte-collection.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-primitives/swift-ascii-parser-primitives.git",
+            url: "https://github.com/swift-molecules/swift-ascii-parser.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-primitives/swift-parser-primitives.git",
+            url: "https://github.com/swift-molecules/swift-parser.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-primitives/swift-byte-parser-primitives.git",
+            url: "https://github.com/swift-molecules/swift-byte-parser.git",
             branch: "main"
         ),
     ],
@@ -47,15 +47,15 @@ let package = Package(
                 .product(name: "RFC 4648", package: "swift-rfc-4648"),
                 .product(name: "RFC 5322", package: "swift-rfc-5322"),
                 .product(
-                    name: "Byte Collection Primitives",
-                    package: "swift-byte-collection-primitives"
+                    name: "Byte Collection",
+                    package: "swift-byte-collection"
                 ),
                 .product(
-                    name: "Parseable ASCII Primitives",
-                    package: "swift-ascii-parser-primitives"
+                    name: "Parseable ASCII",
+                    package: "swift-ascii-parser"
                 ),
-                .product(name: "Parser Primitives", package: "swift-parser-primitives"),
-                .product(name: "Byte Parser Primitives", package: "swift-byte-parser-primitives"),
+                .product(name: "Parser", package: "swift-parser"),
+                .product(name: "Byte Parser", package: "swift-byte-parser"),
             ]
         ),
         .testTarget(

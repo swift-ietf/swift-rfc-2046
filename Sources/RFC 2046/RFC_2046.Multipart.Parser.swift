@@ -1,10 +1,10 @@
-public import Byte_Parser_Primitives
+public import Byte_Parser
 import INCITS_4_1986
-public import Parser_Primitives
+public import Parser
 
 extension RFC_2046.Multipart {
 
-    public struct Parser: Parser_Primitives.Parser.`Protocol`, Sendable {
+    public struct Parser: Parser.Parser.`Protocol`, Sendable {
 
         public let boundary: RFC_2046.Boundary
 

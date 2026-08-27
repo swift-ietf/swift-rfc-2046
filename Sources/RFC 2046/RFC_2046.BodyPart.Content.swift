@@ -1,4 +1,4 @@
-public import Binary_Serializable_Primitives
+public import Binary_Serializable
 import INCITS_4_1986
 import RFC_2045
 import RFC_4648
