@@ -95,13 +95,13 @@ extension RFC_2046.Multipart.Parser {
 }
 
 extension RFC_2046.Multipart.Parser {
-    public typealias Input = Byte.Input
+    public typealias Input = ArraySlice<Byte>
     public typealias Output = RFC_2046.Multipart
     public typealias Failure = RFC_2046.Multipart.Error
     public typealias Body = Never
 
     public borrowing func parse(
-        _ input: inout Byte.Input
+        _ input: inout ArraySlice<Byte>
     ) throws(RFC_2046.Multipart.Error) -> RFC_2046.Multipart {
 
         var bytes: [Byte] = []
@@ -215,7 +215,7 @@ extension RFC_2046.Multipart {
         parser: Parser
     ) throws(Error) -> RFC_2046.Multipart
     where Bytes.Element == Byte {
-        var input = Byte.Input(bytes)
+        var input = bytes[...]
         return try parser.parse(&input)
     }
 }
