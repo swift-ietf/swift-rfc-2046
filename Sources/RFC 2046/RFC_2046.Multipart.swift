@@ -1,10 +1,8 @@
-public import Binary_Serializable
-import INCITS_4_1986
 public import RFC_2045
 
 extension RFC_2046 {
 
-    public struct Multipart: Hashable, Sendable, Codable {
+    public struct Multipart: Hashable, Sendable {
 
         public let subtype: Subtype
 
@@ -90,60 +88,5 @@ extension RFC_2046.Multipart {
             subtype: subtype.rawValue,
             parameters: parameters
         )
-    }
-}
-
-extension RFC_2046.Multipart: Binary.Serializable {
-
-    public static func serialize<Buffer: RangeReplaceableCollection>(
-        _ multipart: Self,
-        into buffer: inout Buffer
-    ) where Buffer.Element == Byte {
-        let hyphen = ASCII.Code.hyphen.byte
-        let cr = ASCII.Code.cr.byte
-        let lf = ASCII.Code.lf.byte
-
-        if let preamble = multipart.preamble {
-            buffer.append(contentsOf: [Byte](preamble.utf8))
-            buffer.append(cr)
-            buffer.append(lf)
-            buffer.append(cr)
-            buffer.append(lf)
-        }
-
-        for part in multipart.parts {
-            buffer.append(hyphen)
-            buffer.append(hyphen)
-
-            RFC_2046.Boundary.serialize(multipart.boundary, into: &buffer)
-            buffer.append(cr)
-            buffer.append(lf)
-
-            RFC_2046.BodyPart.serialize(part, into: &buffer)
-            buffer.append(cr)
-            buffer.append(lf)
-        }
-
-        buffer.append(hyphen)
-        buffer.append(hyphen)
-        RFC_2046.Boundary.serialize(multipart.boundary, into: &buffer)
-        buffer.append(hyphen)
-        buffer.append(hyphen)
-        buffer.append(cr)
-        buffer.append(lf)
-
-        if let epilogue = multipart.epilogue {
-            buffer.append(contentsOf: [Byte](epilogue.utf8))
-            buffer.append(cr)
-            buffer.append(lf)
-        }
-    }
-}
-
-extension [Byte] {
-
-    init(_ multipart: RFC_2046.Multipart) {
-        self = []
-        RFC_2046.Multipart.serialize(multipart, into: &self)
     }
 }

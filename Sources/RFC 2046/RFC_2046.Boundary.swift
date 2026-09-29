@@ -1,13 +1,11 @@
-public import ASCII_Serializer
-public import Binary_Serializable
+import Byte
 import INCITS_4_1986
-public import Parseable_ASCII
 
 private typealias Code = ASCII.Code
 
 extension RFC_2046 {
 
-    public struct Boundary: Sendable, Codable {
+    public struct Boundary: Sendable {
 
         public let rawValue: String
 
@@ -51,23 +49,6 @@ extension RFC_2046.Boundary {
     }
 }
 
-extension RFC_2046.Boundary: ASCII.Serializable, Binary.Serializable {
-
-    public static func serialize<Buffer: RangeReplaceableCollection>(
-        _ boundary: Self,
-        into buffer: inout Buffer
-    ) where Buffer.Element == ASCII.Code {
-        for byte in boundary.rawValue.utf8 { buffer.append(ASCII.Code(byte)) }
-    }
-
-    public static func serialize<Buffer: RangeReplaceableCollection>(
-        _ boundary: Self,
-        into buffer: inout Buffer
-    ) where Buffer.Element == Byte {
-        for byte in boundary.rawValue.utf8 { buffer.append(Byte(byte)) }
-    }
-}
-
 extension RFC_2046.Boundary: Swift.RawRepresentable {
 
     public init?(rawValue: String) {
@@ -84,14 +65,12 @@ extension RFC_2046.Boundary: CustomStringConvertible {
     public var description: String { rawValue }
 }
 
-extension RFC_2046.Boundary: ASCII.Parseable {
+extension RFC_2046.Boundary {
 
     public init(_ string: some StringProtocol) throws(Error) {
-        try self.init(ascii: [Byte](string.utf8))
-    }
+        let value = String(string)
+        let bytes: [Byte] = value.utf8.map(Byte.init(bitPattern:))
 
-    public init<Bytes: Swift.Collection>(ascii bytes: Bytes) throws(Error)
-    where Bytes.Element == Byte {
         guard !bytes.isEmpty else {
             throw Error.empty
         }
@@ -101,20 +80,25 @@ extension RFC_2046.Boundary: ASCII.Parseable {
         }
 
         let codes: [ASCII.Code]
-        do {
-            codes = try [ASCII.Code](bytes)
+        do throws(ASCII.Code.Error) {
+            var built: [ASCII.Code] = []
+            built.reserveCapacity(bytes.count)
+            for byte in bytes {
+                built.append(try ASCII.Code(byte))
+            }
+            codes = built
         } catch {
-            throw Error.notASCII(String(decoding: bytes, as: UTF8.self))
+            throw Error.notASCII(value)
         }
+
         var lastCode: ASCII.Code = 0
 
         for code in codes {
             lastCode = code
 
             guard Self.isValidBoundaryCharacter(code) else {
-                let string = String(decoding: bytes, as: UTF8.self)
                 throw Error.invalidCharacter(
-                    string,
+                    value,
                     code: code,
                     reason: "Only alphanumerics and '()+_,-./:=? are allowed"
                 )
@@ -122,23 +106,15 @@ extension RFC_2046.Boundary: ASCII.Parseable {
         }
 
         if lastCode == Code.space {
-            let string = String(decoding: bytes, as: UTF8.self)
-            throw Error.endsWithWhitespace(string)
+            throw Error.endsWithWhitespace(value)
         }
 
-        self.init(__unchecked: (), rawValue: String(decoding: bytes, as: UTF8.self))
-    }
-}
-
-extension [Byte] {
-
-    public init(_ boundary: RFC_2046.Boundary) {
-        self = []
-        RFC_2046.Boundary.serialize(boundary, into: &self)
+        self.init(__unchecked: (), rawValue: value)
     }
 }
 
 extension RFC_2046.Boundary: Hashable {
+
     public func hash(into hasher: inout Hasher) {
         hasher.combine(rawValue)
     }

@@ -1,6 +1,3 @@
-import INCITS_4_1986
-import RFC_4648
-
 extension RFC_2046.Boundary {
 
     public static func random() -> Self {
@@ -11,23 +8,26 @@ extension RFC_2046.Boundary {
     public static func random(
         using generator: inout some RandomNumberGenerator
     ) -> Self {
-        var bytes: [Byte] = []
-        bytes.reserveCapacity(16)
+        let digits: [Character] = [
+            "0", "1", "2", "3", "4", "5", "6", "7",
+            "8", "9", "a", "b", "c", "d", "e", "f",
+        ]
+
+        var hex = ""
+        hex.reserveCapacity(32)
         for _ in 0..<2 {
             var word = generator.next()
             for _ in 0..<8 {
-                bytes.append(Byte(UInt8(truncatingIfNeeded: word)))
+                let octet = UInt8(truncatingIfNeeded: word)
+                hex.append(digits[Int(octet >> 4)])
+                hex.append(digits[Int(octet & 0x0F)])
                 word >>= 8
             }
         }
 
-        let hexCodes: [ASCII.Code] = RFC_4648.Hex.encode(bytes, uppercase: false)
-        let hex = String(decoding: hexCodes, as: UTF8.self)
-
         do throws(RFC_2046.Boundary.Error) {
             return try Self("----Part_\(hex)")
         } catch {
-
             fatalError("RFC_2046.Boundary.random() produced an invalid boundary: \(error)")
         }
     }

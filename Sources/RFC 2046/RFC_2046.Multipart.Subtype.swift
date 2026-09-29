@@ -1,11 +1,7 @@
-public import ASCII_Serializer
-public import Binary_Serializable
-import INCITS_4_1986
-public import Parseable_ASCII
-
 extension RFC_2046.Multipart {
 
-    public struct Subtype: Sendable, Codable {
+    public struct Subtype: Sendable {
+
         public let rawValue: String
 
         init(
@@ -14,23 +10,6 @@ extension RFC_2046.Multipart {
         ) {
             self.rawValue = rawValue
         }
-    }
-}
-
-extension RFC_2046.Multipart.Subtype: ASCII.Serializable, Binary.Serializable {
-
-    public static func serialize<Buffer: RangeReplaceableCollection>(
-        _ subtype: Self,
-        into buffer: inout Buffer
-    ) where Buffer.Element == ASCII.Code {
-        for byte in subtype.rawValue.utf8 { buffer.append(ASCII.Code(byte)) }
-    }
-
-    public static func serialize<Buffer: RangeReplaceableCollection>(
-        _ subtype: Self,
-        into buffer: inout Buffer
-    ) where Buffer.Element == Byte {
-        for byte in subtype.rawValue.utf8 { buffer.append(Byte(byte)) }
     }
 }
 
@@ -50,34 +29,19 @@ extension RFC_2046.Multipart.Subtype: CustomStringConvertible {
     public var description: String { rawValue }
 }
 
-extension RFC_2046.Multipart.Subtype: ASCII.Parseable {
+extension RFC_2046.Multipart.Subtype {
 
     public init(_ string: some StringProtocol) throws(Error) {
-        try self.init(ascii: [Byte](string.utf8))
-    }
-
-    public init<Bytes: Swift.Collection>(ascii bytes: Bytes) throws(Error)
-    where Bytes.Element == Byte {
-        guard !bytes.isEmpty else {
+        guard !string.isEmpty else {
             throw Error.empty
         }
 
-        self.init(
-            __unchecked: (),
-            rawValue: String(decoding: bytes, as: UTF8.self).lowercased()
-        )
-    }
-}
-
-extension [Byte] {
-
-    public init(_ subtype: RFC_2046.Multipart.Subtype) {
-        self = []
-        RFC_2046.Multipart.Subtype.serialize(subtype, into: &self)
+        self.init(__unchecked: (), rawValue: String(string).lowercased())
     }
 }
 
 extension RFC_2046.Multipart.Subtype: Hashable {
+
     public func hash(into hasher: inout Hasher) {
         hasher.combine(rawValue)
     }

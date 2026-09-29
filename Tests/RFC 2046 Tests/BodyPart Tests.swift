@@ -1,10 +1,8 @@
-import Foundation
+import Byte
+import Byte
 import RFC_2045
-import RFC_2183
-import RFC_5322
+import RFC_2046
 import Testing
-
-@testable import RFC_2046
 
 @Suite
 struct `BodyPart - Core initialization` {
@@ -13,12 +11,12 @@ struct `BodyPart - Core initialization` {
         let headers = RFC_2046.BodyPart.Headers(
             contentType: .textPlainUTF8
         )
-        let content = RFC_2046.BodyPart.Content([72, 101, 108, 108, 111])
+        let content = RFC_2046.BodyPart.Content([Byte](utf8: "Hello"))
 
         let part = RFC_2046.BodyPart(headers: headers, content: content)
 
         #expect(part.headers == headers)
-        #expect([Byte](part.content) == [72, 101, 108, 108, 111] as [Byte])
+        #expect(part.content.rawValue == [Byte](utf8: "Hello"))
     }
 
     @Test
@@ -30,35 +28,44 @@ struct `BodyPart - Core initialization` {
 
         let part = RFC_2046.BodyPart(headers: headers, content: content)
 
-        #expect([Byte](part.content).isEmpty)
+        #expect(part.content.rawValue.isEmpty)
     }
 
+    @Test
+    func `Initialize from a content type and text`() throws {
+        let part = RFC_2046.BodyPart(contentType: .textPlainUTF8, text: "Hello, World!")
+
+        #expect(part.contentType == .textPlainUTF8)
+        #expect(part.transferEncoding == .eightBit)
+        #expect(part.content.rawValue == [Byte](utf8: "Hello, World!"))
+    }
+}
+
+@Suite
+struct `BodyPart Content - Value semantics` {
     @Test
     func `Content from text string`() throws {
         let content = RFC_2046.BodyPart.Content("Hello, World!")
 
-        #expect([Byte](content) == [Byte]("Hello, World!".utf8))
+        #expect(content.rawValue == [Byte](utf8: "Hello, World!"))
         #expect(content.description == "Hello, World!")
     }
 
     @Test
     func `Content from bytes`() throws {
-        let bytes: [Byte] = [72, 101, 108, 108, 111]
+        let bytes: [Byte] = [Byte](utf8: "Hello")
         let content = RFC_2046.BodyPart.Content(bytes)
 
-        #expect([Byte](content) == bytes)
+        #expect(content.rawValue == bytes)
         #expect(content.description == "Hello")
     }
-}
 
-@Suite
-struct `BodyPart Content - Serialization` {
     @Test
-    func `Content serializes to bytes`() throws {
-        let content = RFC_2046.BodyPart.Content("Hello")
-        let bytes = [Byte](content)
+    func `Content from any byte collection`() throws {
+        let bytes: [Byte] = [Byte](utf8: "Hello")
+        let content = RFC_2046.BodyPart.Content(binary: bytes[...])
 
-        #expect(bytes == [Byte]("Hello".utf8))
+        #expect(content.rawValue == bytes)
     }
 
     @Test
@@ -66,146 +73,6 @@ struct `BodyPart Content - Serialization` {
         let content = RFC_2046.BodyPart.Content("Hello 🌍")
 
         #expect(content.description == "Hello 🌍")
-    }
-
-    @Test
-    func `Content rawValue contains bytes`() throws {
-        let bytes: [Byte] = [0x48, 0x65, 0x6C, 0x6C, 0x6F]
-        let content = RFC_2046.BodyPart.Content(bytes)
-
-        #expect(content.rawValue == bytes)
-    }
-}
-
-@Suite
-struct `BodyPart - Serialization` {
-    @Test
-    func `Serialize produces headers plus content`() throws {
-        let headers = RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8)
-        let content = RFC_2046.BodyPart.Content("Hello, World!")
-        let part = RFC_2046.BodyPart(headers: headers, content: content)
-
-        let serialized = [Byte](part)
-        let string = String(decoding: serialized, as: UTF8.self)
-
-        #expect(string.contains("Content-Type: text/plain; charset=UTF-8"))
-        #expect(string.contains("\r\n\r\n"))
-        #expect(string.hasSuffix("Hello, World!"))
-    }
-
-    @Test
-    func `Serialize with transfer encoding`() throws {
-        let headers = RFC_2046.BodyPart.Headers(
-            contentType: .textPlainUTF8,
-            contentTransferEncoding: .sevenBit
-        )
-        let content = RFC_2046.BodyPart.Content("Hello")
-        let part = RFC_2046.BodyPart(headers: headers, content: content)
-
-        let serialized = [Byte](part)
-        let string = String(decoding: serialized, as: UTF8.self)
-
-        #expect(string.contains("Content-Transfer-Encoding: 7bit"))
-        #expect(string.hasSuffix("Hello"))
-    }
-
-    @Test
-    func `Serialize with base64 encoding applies encoding`() throws {
-        let headers = RFC_2046.BodyPart.Headers(
-            contentType: .textPlainUTF8,
-            contentTransferEncoding: .base64
-        )
-        let content = RFC_2046.BodyPart.Content("Hello, World!")
-        let part = RFC_2046.BodyPart(headers: headers, content: content)
-
-        let serialized = [Byte](part)
-        let string = String(decoding: serialized, as: UTF8.self)
-
-        #expect(string.contains("Content-Transfer-Encoding: base64"))
-        #expect(string.hasSuffix("SGVsbG8sIFdvcmxkIQ=="))
-    }
-
-    @Test
-    func `Serialize empty content`() throws {
-        let headers = RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8)
-        let content = RFC_2046.BodyPart.Content([])
-        let part = RFC_2046.BodyPart(headers: headers, content: content)
-
-        let serialized = [Byte](part)
-        let string = String(decoding: serialized, as: UTF8.self)
-
-        #expect(string.contains("Content-Type:"))
-        #expect(string.contains("\r\n\r\n"))
-    }
-}
-
-@Suite
-struct `BodyPart - Parsing` {
-    @Test
-    func `Parse body part from raw bytes`() throws {
-        let bytes = [Byte]("Content-Type: text/plain\r\n\r\nHello!".utf8)
-        let part = try RFC_2046.BodyPart(binary: bytes)
-
-        #expect(part.contentType?.type == "text")
-        #expect(part.contentType?.subtype == "plain")
-        #expect(part.content.description == "Hello!")
-    }
-
-    @Test
-    func `Parse body part with LF line endings`() throws {
-        let bytes = [Byte]("Content-Type: text/plain\n\nHello!".utf8)
-        let part = try RFC_2046.BodyPart(binary: bytes)
-
-        #expect(part.content.description == "Hello!")
-    }
-
-    @Test
-    func `Parse body part with headers only`() throws {
-        let bytes = [Byte]("Content-Type: text/plain".utf8)
-        let part = try RFC_2046.BodyPart(binary: bytes)
-
-        #expect(part.contentType?.type == "text")
-        #expect([Byte](part.content).isEmpty)
-    }
-}
-
-@Suite
-struct `BodyPart - Round-trip` {
-    @Test
-    func `Round-trip preserves simple part`() throws {
-        let headers = RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8)
-        let content = RFC_2046.BodyPart.Content("Hello, World!")
-        let original = RFC_2046.BodyPart(headers: headers, content: content)
-
-        let serialized = [Byte](original)
-        let parsed = try RFC_2046.BodyPart(binary: serialized)
-
-        #expect(parsed.headers == original.headers)
-        #expect([Byte](parsed.content) == [Byte](original.content))
-    }
-
-    @Test
-    func `Round-trip preserves binary content`() throws {
-        let headers = RFC_2046.BodyPart.Headers(contentType: .applicationOctetStream)
-        let content = RFC_2046.BodyPart.Content([0x48, 0x65, 0x6C, 0x6C, 0x6F])
-        let original = RFC_2046.BodyPart(headers: headers, content: content)
-
-        let serialized = [Byte](original)
-        let parsed = try RFC_2046.BodyPart(binary: serialized)
-
-        #expect([Byte](parsed.content) == [Byte](original.content))
-    }
-
-    @Test
-    func `Round-trip preserves empty content`() throws {
-        let headers = RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8)
-        let content = RFC_2046.BodyPart.Content([])
-        let original = RFC_2046.BodyPart(headers: headers, content: content)
-
-        let serialized = [Byte](original)
-        let parsed = try RFC_2046.BodyPart(binary: serialized)
-
-        #expect([Byte](parsed.content).isEmpty)
     }
 }
 
@@ -230,71 +97,5 @@ struct `BodyPart - Hashable and Equatable` {
         let b = RFC_2046.BodyPart(headers: headers, content: RFC_2046.BodyPart.Content("World"))
 
         #expect(a != b)
-    }
-
-    @Test
-    func `Same parts have same hash`() throws {
-        let headers = RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8)
-        let content = RFC_2046.BodyPart.Content("Hello")
-
-        let a = RFC_2046.BodyPart(headers: headers, content: content)
-        let b = RFC_2046.BodyPart(headers: headers, content: content)
-
-        #expect(a.hashValue == b.hashValue)
-    }
-}
-
-@Suite
-struct `BodyPart - Codable` {
-    @Test
-    func `Round-trip encoding preserves part`() throws {
-        let headers = RFC_2046.BodyPart.Headers(
-            contentType: .textPlainUTF8,
-            contentTransferEncoding: .base64
-        )
-        let content = RFC_2046.BodyPart.Content("Hello, World!")
-        let original = RFC_2046.BodyPart(headers: headers, content: content)
-
-        let encoder = JSONEncoder()
-        let decoder = JSONDecoder()
-
-        let data = try encoder.encode(original)
-        let decoded = try decoder.decode(RFC_2046.BodyPart.self, from: data)
-
-        #expect(decoded == original)
-        #expect(decoded.content.description == original.content.description)
-        #expect(decoded.contentType == original.contentType)
-        #expect(decoded.transferEncoding == original.transferEncoding)
-    }
-
-    @Test
-    func `Encoding preserves binary content`() throws {
-        let headers = RFC_2046.BodyPart.Headers(contentType: .imageJPEG)
-        let content = RFC_2046.BodyPart.Content([0xFF, 0xD8, 0xFF, 0xE0])
-        let original = RFC_2046.BodyPart(headers: headers, content: content)
-
-        let encoder = JSONEncoder()
-        let decoder = JSONDecoder()
-
-        let data = try encoder.encode(original)
-        let decoded = try decoder.decode(RFC_2046.BodyPart.self, from: data)
-
-        #expect([Byte](decoded.content) == [Byte](original.content))
-    }
-}
-
-@Suite
-struct `BodyPart - Sendable` {
-    @Test
-    func `BodyPart can be sent across concurrency domains`() async throws {
-        let headers = RFC_2046.BodyPart.Headers(contentType: .textPlainUTF8)
-        let content = RFC_2046.BodyPart.Content("Hello")
-        let part = RFC_2046.BodyPart(headers: headers, content: content)
-
-        let result = await Task {
-            part.content.description
-        }.value
-
-        #expect(result == "Hello")
     }
 }

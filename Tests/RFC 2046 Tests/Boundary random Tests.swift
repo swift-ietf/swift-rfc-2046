@@ -1,12 +1,11 @@
 import RFC_2045
+import RFC_2046
 import Testing
-
-@testable import RFC_2046
 
 @Suite
 struct `Boundary.random` {
     @Suite
-    struct Unit {
+    struct `Generated boundaries` {
         @Test
         func `Random boundary has the ----Part_ prefix`() {
             let boundary = RFC_2046.Boundary.random()
@@ -40,7 +39,7 @@ struct `Boundary.random` {
         }
 
         @Test
-        func `Random boundary serializes as an unquoted Content Type parameter`()
+        func `Random boundary is an unquotable Content-Type parameter value`()
             throws(RFC_2046.Multipart.Error)
         {
             let boundary = RFC_2046.Boundary.random()
@@ -54,11 +53,8 @@ struct `Boundary.random` {
                 boundary: boundary
             )
 
-            #expect(
-                multipart.contentType.headerValue
-                    == "multipart/mixed; boundary=\(boundary)"
-            )
-            #expect(!multipart.contentType.headerValue.contains("\""))
+            #expect(multipart.contentType.parameters[.boundary] == boundary.rawValue)
+            #expect(!boundary.rawValue.contains("\""))
         }
 
         @Test
@@ -72,7 +68,7 @@ struct `Boundary.random` {
     }
 
     @Suite
-    struct `Edge Case` {
+    struct `Extreme entropy` {
         @Test
         func `All-zero entropy still produces a valid boundary`()
             throws(RFC_2046.Boundary.Error)
@@ -109,19 +105,6 @@ struct `Boundary.random` {
                 String(describing: RFC_2046.Boundary.random())
             }
             #expect(Set(boundaries).count == boundaries.count)
-        }
-    }
-
-    @Suite
-    struct Integration {
-        @Test
-        func `Random boundary serializes and round-trips through bytes`()
-            throws(RFC_2046.Boundary.Error)
-        {
-            let boundary = RFC_2046.Boundary.random()
-            let bytes = [Byte](boundary)
-            let parsed = try RFC_2046.Boundary(ascii: bytes)
-            #expect(parsed == boundary)
         }
     }
 }

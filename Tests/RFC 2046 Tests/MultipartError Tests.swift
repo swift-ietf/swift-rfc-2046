@@ -1,6 +1,6 @@
+import RFC_2045
+import RFC_2046
 import Testing
-
-@testable import RFC_2046
 
 @Suite
 struct `Boundary.Error - Error cases` {
@@ -48,44 +48,7 @@ struct `Boundary.Error - Error cases` {
 }
 
 @Suite
-struct `Boundary.Error - Equatable` {
-    @Test
-    func `empty errors are equal`() {
-        let a = RFC_2046.Boundary.Error.empty
-        let b = RFC_2046.Boundary.Error.empty
-        #expect(a == b)
-    }
-
-    @Test
-    func `same tooLong errors are equal`() {
-        let a = RFC_2046.Boundary.Error.tooLong(100)
-        let b = RFC_2046.Boundary.Error.tooLong(100)
-        #expect(a == b)
-    }
-
-    @Test
-    func `different tooLong errors are not equal`() {
-        let a = RFC_2046.Boundary.Error.tooLong(100)
-        let b = RFC_2046.Boundary.Error.tooLong(200)
-        #expect(a != b)
-    }
-
-    @Test
-    func `different error types are not equal`() {
-        let a = RFC_2046.Boundary.Error.empty
-        let b = RFC_2046.Boundary.Error.tooLong(100)
-        #expect(a != b)
-    }
-}
-
-@Suite
 struct `Multipart.Error - Error cases` {
-    @Test
-    func `emptyParts error is created`() {
-        let error = RFC_2046.Multipart.Error.emptyParts
-        #expect(error == .emptyParts)
-    }
-
     @Test
     func `Multipart initialization throws emptyParts`() {
         #expect(throws: RFC_2046.Multipart.Error.self) {
@@ -115,71 +78,24 @@ struct `Multipart.Error - Error cases` {
 }
 
 @Suite
-struct `Multipart.Error - Equatable` {
-    @Test
-    func `emptyParts errors are equal`() {
-        let a = RFC_2046.Multipart.Error.emptyParts
-        let b = RFC_2046.Multipart.Error.emptyParts
-        #expect(a == b)
-    }
-}
-
-@Suite
-struct `Multipart.Error - Sendable conformance` {
-    @Test
-    func `Errors can be sent across concurrency domains`() async {
-        let error = RFC_2046.Multipart.Error.emptyParts
-
-        let result = await Task {
-            error
-        }.value
-
-        #expect(result == .emptyParts)
-    }
-}
-
-@Suite
 struct `Subtype.Error - Error cases` {
     @Test
     func `empty subtype throws empty error`() {
         #expect(throws: RFC_2046.Multipart.Subtype.Error.self) {
-            _ = try RFC_2046.Multipart.Subtype(ascii: [Byte]("".utf8))
+            _ = try RFC_2046.Multipart.Subtype("")
         }
     }
 
     @Test
     func `valid subtype succeeds`() throws {
-        let subtype = try RFC_2046.Multipart.Subtype(ascii: [Byte]("alternative".utf8))
+        let subtype = try RFC_2046.Multipart.Subtype("alternative")
         #expect(subtype.rawValue == "alternative")
     }
 
     @Test
     func `subtype normalizes to lowercase`() throws {
-        let subtype = try RFC_2046.Multipart.Subtype(ascii: [Byte]("ALTERNATIVE".utf8))
+        let subtype = try RFC_2046.Multipart.Subtype("ALTERNATIVE")
         #expect(subtype.rawValue == "alternative")
-    }
-}
-
-@Suite
-struct `Headers.Error - Error cases` {
-    @Test
-    func `invalid header line throws error`() {
-        #expect(throws: RFC_2046.BodyPart.Headers.Error.self) {
-            _ = try RFC_2046.BodyPart.Headers(ascii: [Byte]("invalid header without colon".utf8))
-        }
-    }
-
-    @Test
-    func `empty header name throws error`() {
-        #expect(throws: RFC_2046.BodyPart.Headers.Error.self) {
-            _ = try RFC_2046.BodyPart.Headers(ascii: [Byte](": value".utf8))
-        }
-    }
-
-    @Test
-    func `valid header parses correctly`() throws {
-        let headers = try RFC_2046.BodyPart.Headers(ascii: [Byte]("Content-Type: text/plain".utf8))
-        #expect(headers.contentType != nil)
     }
 }
 
@@ -207,7 +123,7 @@ struct `Error - Integration` {
         let content = RFC_2046.BodyPart.Content("test")
         let part = RFC_2046.BodyPart(headers: headers, content: content)
 
-        #expect(throws: Error.self) {
+        #expect(throws: RFC_2046.Boundary.Error.self) {
             _ = try RFC_2046.Multipart(
                 subtype: .mixed,
                 parts: [part],
