@@ -46,7 +46,7 @@ extension RFC_2046 {
             }
 
             for (name, value) in additionalParameters {
-                guard Self.isRepresentableParameterValue(value) else {
+                guard name != .boundary, Self.isRepresentableParameterValue(value) else {
                     throw RFC_2046.Multipart.Error.invalidParameterValue(
                         name: name.rawValue,
                         value: value
@@ -80,7 +80,7 @@ extension RFC_2046.Multipart {
     public var contentType: RFC_2045.ContentType {
         var parameters: [RFC_2045.Parameter.Name: String] = [.boundary: boundary.rawValue]
 
-        parameters.merge(additionalParameters) { _, new in new }
+        parameters.merge(additionalParameters) { current, _ in current }
 
         return RFC_2045.ContentType(
             __unchecked: (),
