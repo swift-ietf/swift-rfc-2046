@@ -1,6 +1,6 @@
 extension RFC_2046.Multipart {
 
-    public enum Error: Swift.Error, Sendable, Equatable, Hashable {
+    public enum Error: Swift::Error, Sendable, Equatable, Hashable {
 
         case emptyParts
 

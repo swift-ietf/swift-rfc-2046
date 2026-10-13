@@ -13,7 +13,7 @@ extension RFC_2046.Multipart {
     }
 }
 
-extension RFC_2046.Multipart.Subtype: Swift.RawRepresentable {
+extension RFC_2046.Multipart.Subtype: Swift::RawRepresentable {
 
     public init?(rawValue: String) {
         do throws(RFC_2046.Multipart.Subtype.Error) {

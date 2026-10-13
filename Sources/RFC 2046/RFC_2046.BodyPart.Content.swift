@@ -1,5 +1,4 @@
 public import Byte
-import Byte
 
 extension RFC_2046.BodyPart {
 
@@ -15,7 +14,7 @@ extension RFC_2046.BodyPart {
 
 extension RFC_2046.BodyPart.Content {
 
-    public init<Bytes: Swift.Collection>(binary bytes: Bytes) where Bytes.Element == Byte {
+    public init<Bytes: Swift::Collection>(binary bytes: Bytes) where Bytes.Element == Byte {
         self.init([Byte](bytes))
     }
 
@@ -24,7 +23,7 @@ extension RFC_2046.BodyPart.Content {
     }
 }
 
-extension RFC_2046.BodyPart.Content: Swift.RawRepresentable {
+extension RFC_2046.BodyPart.Content: Swift::RawRepresentable {
 
     public init?(rawValue: [Byte]) {
         self.init(rawValue)

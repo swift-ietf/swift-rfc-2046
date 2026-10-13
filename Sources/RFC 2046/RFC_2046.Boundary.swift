@@ -49,7 +49,7 @@ extension RFC_2046.Boundary {
     }
 }
 
-extension RFC_2046.Boundary: Swift.RawRepresentable {
+extension RFC_2046.Boundary: Swift::RawRepresentable {
 
     public init?(rawValue: String) {
         do throws(RFC_2046.Boundary.Error) {

@@ -1,6 +1,6 @@
 extension RFC_2046.BodyPart.Headers {
 
-    public enum Error: Swift.Error, Sendable, Equatable {
+    public enum Error: Swift::Error, Sendable, Equatable {
 
         case invalidHeaderLine(_ line: String)
 

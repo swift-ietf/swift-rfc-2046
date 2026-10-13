@@ -2,7 +2,7 @@ public import INCITS_4_1986
 
 extension RFC_2046.Boundary {
 
-    public enum Error: Swift.Error, Sendable, Equatable {
+    public enum Error: Swift::Error, Sendable, Equatable {
 
         case empty
 
