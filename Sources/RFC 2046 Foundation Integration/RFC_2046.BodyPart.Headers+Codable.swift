@@ -1,9 +1,9 @@
-public import RFC_2046
 import RFC_2045
-import RFC_2183
-import RFC_5322
 import RFC_2045_Foundation_Integration
+public import RFC_2046
+import RFC_2183
 import RFC_2183_Foundation_Integration
+import RFC_5322
 import RFC_5322_Foundation_Integration
 
 extension RFC_2046.BodyPart.Headers: Encodable, Decodable {

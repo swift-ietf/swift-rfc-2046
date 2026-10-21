@@ -1,5 +1,4 @@
 import Byte
-import Byte
 import Foundation
 import RFC_2045
 import RFC_2046
