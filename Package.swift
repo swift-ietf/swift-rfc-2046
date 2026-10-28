@@ -36,10 +36,6 @@ let package = Package(
             name: "RFC 2046",
             dependencies: [
                 .product(name: "Byte", package: "swift-byte"),
-                .product(
-                    name: "Byte",
-                    package: "swift-byte"
-                ),
                 .product(name: "INCITS 4 1986", package: "swift-incits-4-1986"),
                 .product(name: "RFC 2045", package: "swift-rfc-2045"),
                 .product(name: "RFC 2183", package: "swift-rfc-2183"),
@@ -73,10 +69,6 @@ let package = Package(
             dependencies: [
                 .target(name: "RFC 2046"),
                 .product(name: "Byte", package: "swift-byte"),
-                .product(
-                    name: "Byte",
-                    package: "swift-byte"
-                ),
                 .product(name: "INCITS 4 1986", package: "swift-incits-4-1986"),
                 .product(name: "RFC 2045", package: "swift-rfc-2045"),
                 .product(name: "RFC 2183", package: "swift-rfc-2183"),
@@ -89,10 +81,6 @@ let package = Package(
                 .target(name: "RFC 2046"),
                 .target(name: "RFC 2046 Foundation Integration"),
                 .product(name: "Byte", package: "swift-byte"),
-                .product(
-                    name: "Byte",
-                    package: "swift-byte"
-                ),
                 .product(name: "RFC 2045", package: "swift-rfc-2045"),
                 .product(name: "RFC 2183", package: "swift-rfc-2183"),
                 .product(name: "RFC 5322", package: "swift-rfc-5322"),
