@@ -2,7 +2,9 @@ import RFC_2045
 import RFC_2046
 import Testing
 
-extension RFC_2046.Multipart {
+enum `RFC_2046.Multipart Tests` {}
+
+extension `RFC_2046.Multipart Tests` {
     @Suite
     struct `Content-Type of a multipart body` {
 
