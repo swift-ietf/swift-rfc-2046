@@ -6,39 +6,43 @@ import RFC_2183
 import RFC_5322
 import Testing
 
-@Suite
-struct `BodyPart.Headers - Codable` {
-    @Test
-    func `Round-trip encoding preserves headers`() throws {
-        let original = try RFC_2046.BodyPart.Headers(
-            contentDisposition: .inline(),
-            contentType: .textPlainUTF8,
-            contentTransferEncoding: .base64,
-            custom: [RFC_5322.Header(name: .init("X-Custom"), value: .init("value"))]
-        )
+enum `BodyPart.Headers Codable Tests` {}
 
-        let encoder = JSONEncoder()
-        let decoder = JSONDecoder()
+extension `BodyPart.Headers Codable Tests` {
+    @Suite
+    struct `BodyPart.Headers - Codable` {
+        @Test
+        func `Round-trip encoding preserves headers`() throws {
+            let original = try RFC_2046.BodyPart.Headers(
+                contentDisposition: .inline(),
+                contentType: .textPlainUTF8,
+                contentTransferEncoding: .base64,
+                custom: [RFC_5322.Header(name: .init("X-Custom"), value: .init("value"))]
+            )
 
-        let data = try encoder.encode(original)
-        let decoded = try decoder.decode(RFC_2046.BodyPart.Headers.self, from: data)
+            let encoder = JSONEncoder()
+            let decoder = JSONDecoder()
 
-        #expect(decoded.contentDisposition == original.contentDisposition)
-        #expect(decoded.contentType == original.contentType)
-        #expect(decoded.contentTransferEncoding == original.contentTransferEncoding)
-        #expect(decoded.custom == original.custom)
-    }
+            let data = try encoder.encode(original)
+            let decoded = try decoder.decode(RFC_2046.BodyPart.Headers.self, from: data)
 
-    @Test
-    func `Empty headers encode and decode correctly`() throws {
-        let original = RFC_2046.BodyPart.Headers()
+            #expect(decoded.contentDisposition == original.contentDisposition)
+            #expect(decoded.contentType == original.contentType)
+            #expect(decoded.contentTransferEncoding == original.contentTransferEncoding)
+            #expect(decoded.custom == original.custom)
+        }
 
-        let encoder = JSONEncoder()
-        let decoder = JSONDecoder()
+        @Test
+        func `Empty headers encode and decode correctly`() throws {
+            let original = RFC_2046.BodyPart.Headers()
 
-        let data = try encoder.encode(original)
-        let decoded = try decoder.decode(RFC_2046.BodyPart.Headers.self, from: data)
+            let encoder = JSONEncoder()
+            let decoder = JSONDecoder()
 
-        #expect(decoded == original)
+            let data = try encoder.encode(original)
+            let decoded = try decoder.decode(RFC_2046.BodyPart.Headers.self, from: data)
+
+            #expect(decoded == original)
+        }
     }
 }

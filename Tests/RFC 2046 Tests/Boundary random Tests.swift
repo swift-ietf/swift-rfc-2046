@@ -2,8 +2,15 @@ import RFC_2045
 import RFC_2046
 import Testing
 
-@Suite
-struct `Boundary.random` {
+enum `Boundary random Tests` {}
+
+extension `Boundary random Tests` {
+    @Suite
+    struct `Boundary.random` {
+    }
+}
+
+extension `Boundary random Tests`.`Boundary.random` {
     @Suite
     struct `Generated boundaries` {
         @Test
