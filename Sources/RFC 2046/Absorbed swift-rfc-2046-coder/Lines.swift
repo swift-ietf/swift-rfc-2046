@@ -3,7 +3,9 @@
     import Byte
 
     enum Lines {
+    }
 
+    extension Lines {
         static func split(_ bytes: [Byte]) -> [ArraySlice<Byte>] {
             let cr = ASCII.Code.cr.byte
             let lf = ASCII.Code.lf.byte
