@@ -4,9 +4,9 @@
     import RFC_2046
     import Testing
 
-enum `BodyPart Coder Tests` {}
+    enum `BodyPart Coder Tests` {}
 
-extension `BodyPart Coder Tests` {
+    extension `BodyPart Coder Tests` {
         @Suite
         struct `BodyPart - Serialization` {
             @Test
@@ -67,9 +67,9 @@ extension `BodyPart Coder Tests` {
                 #expect(string.contains("\r\n\r\n"))
             }
         }
-}
+    }
 
-extension `BodyPart Coder Tests` {
+    extension `BodyPart Coder Tests` {
         @Suite
         struct `BodyPart - Parsing` {
             @Test
@@ -118,9 +118,9 @@ extension `BodyPart Coder Tests` {
                 }
             }
         }
-}
+    }
 
-extension `BodyPart Coder Tests` {
+    extension `BodyPart Coder Tests` {
         @Suite
         struct `BodyPart - Round-trip` {
             @Test
@@ -178,5 +178,5 @@ extension `BodyPart Coder Tests` {
                 #expect([Byte](reparsed) == wire)
             }
         }
-}
+    }
 #endif

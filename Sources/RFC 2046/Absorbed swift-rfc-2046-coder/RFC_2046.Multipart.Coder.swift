@@ -32,7 +32,7 @@
         }
     }
 
-extension RFC_2046.Multipart.Coder {
+    extension RFC_2046.Multipart.Coder {
         public typealias Output = RFC_2046.Multipart
 
         public typealias Failure = RFC_2046.Multipart.Error
@@ -58,5 +58,5 @@ extension RFC_2046.Multipart.Coder {
         ) throws(Failure) {
             RFC_2046.Multipart.serialize(output, into: &buffer)
         }
-}
+    }
 #endif

@@ -6,9 +6,9 @@
     import RFC_5322
     import Testing
 
-enum `BodyPart.Headers Coder Tests` {}
+    enum `BodyPart.Headers Coder Tests` {}
 
-extension `BodyPart.Headers Coder Tests` {
+    extension `BodyPart.Headers Coder Tests` {
         @Suite
         struct `BodyPart.Headers - Parsing from bytes` {
             @Test
@@ -106,9 +106,9 @@ extension `BodyPart.Headers Coder Tests` {
                 }
             }
         }
-}
+    }
 
-extension `BodyPart.Headers Coder Tests` {
+    extension `BodyPart.Headers Coder Tests` {
         @Suite
         struct `BodyPart.Headers - Folded header lines` {
             @Test
@@ -134,9 +134,9 @@ extension `BodyPart.Headers Coder Tests` {
                 #expect(headers.custom.count == 1)
             }
         }
-}
+    }
 
-extension `BodyPart.Headers Coder Tests` {
+    extension `BodyPart.Headers Coder Tests` {
         @Suite
         struct `BodyPart.Headers - Byte serialization` {
             @Test
@@ -204,9 +204,9 @@ extension `BodyPart.Headers Coder Tests` {
                 #expect(headers.description == "Content-Transfer-Encoding: base64\r\n")
             }
         }
-}
+    }
 
-extension `BodyPart.Headers Coder Tests` {
+    extension `BodyPart.Headers Coder Tests` {
         @Suite
         struct `BodyPart.Headers - Round-trip serialization` {
             @Test
@@ -251,9 +251,9 @@ extension `BodyPart.Headers Coder Tests` {
                 #expect(parsed.contentTransferEncoding == .quotedPrintable)
             }
         }
-}
+    }
 
-extension `BodyPart.Headers Coder Tests` {
+    extension `BodyPart.Headers Coder Tests` {
         @Suite
         struct `BodyPart.Headers - Subscript access` {
             @Test
@@ -311,5 +311,5 @@ extension `BodyPart.Headers Coder Tests` {
                 #expect(headers.contentType == nil)
             }
         }
-}
+    }
 #endif

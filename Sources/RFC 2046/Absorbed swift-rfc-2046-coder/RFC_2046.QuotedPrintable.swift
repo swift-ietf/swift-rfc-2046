@@ -7,7 +7,7 @@
         }
     }
 
-extension RFC_2046.QuotedPrintable {
+    extension RFC_2046.QuotedPrintable {
         public static func encode(_ bytes: [Byte]) -> [Byte] {
             let equals = ASCII.Code.equalsSign.byte
             let cr = ASCII.Code.cr.byte
@@ -88,5 +88,5 @@ extension RFC_2046.QuotedPrintable {
             }
             return output
         }
-}
+    }
 #endif

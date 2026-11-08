@@ -16,7 +16,7 @@
         public static var coder: Coder<ArraySlice<Byte>, [Byte]> { .init() }
     }
 
-extension RFC_2046.Multipart.Subtype.Coder {
+    extension RFC_2046.Multipart.Subtype.Coder {
         public typealias Output = RFC_2046.Multipart.Subtype
 
         public typealias Failure = RFC_2046.Multipart.Subtype.Error
@@ -41,5 +41,5 @@ extension RFC_2046.Multipart.Subtype.Coder {
         ) throws(Failure) {
             Scan.append(output.rawValue, into: &buffer)
         }
-}
+    }
 #endif

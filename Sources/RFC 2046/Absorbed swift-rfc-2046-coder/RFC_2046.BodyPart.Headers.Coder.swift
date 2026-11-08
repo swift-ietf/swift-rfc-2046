@@ -17,7 +17,7 @@
         public static var coder: Coder<ArraySlice<Byte>, [Byte]> { .init() }
     }
 
-extension RFC_2046.BodyPart.Headers.Coder {
+    extension RFC_2046.BodyPart.Headers.Coder {
         public typealias Output = RFC_2046.BodyPart.Headers
 
         public typealias Failure = RFC_2046.BodyPart.Headers.Error
@@ -39,5 +39,5 @@ extension RFC_2046.BodyPart.Headers.Coder {
         ) throws(Failure) {
             RFC_2046.BodyPart.Headers.serialize(output, into: &buffer)
         }
-}
+    }
 #endif

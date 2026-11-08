@@ -5,9 +5,9 @@
     import RFC_2046
     import Testing
 
-enum `QuotedPrintable Tests` {}
+    enum `QuotedPrintable Tests` {}
 
-extension `QuotedPrintable Tests` {
+    extension `QuotedPrintable Tests` {
         @Suite
         struct `Quoted-printable content` {
             @Test
@@ -49,5 +49,5 @@ extension `QuotedPrintable Tests` {
                 #expect(lines.allSatisfy { $0.count <= 76 })
             }
         }
-}
+    }
 #endif

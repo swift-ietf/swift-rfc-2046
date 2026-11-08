@@ -7,9 +7,9 @@
     import RFC_2183
     import Testing
 
-enum `Serialization Equivalence Tests` {}
+    enum `Serialization Equivalence Tests` {}
 
-extension `Serialization Equivalence Tests` {
+    extension `Serialization Equivalence Tests` {
         @Suite
         struct `ASCII and binary serialization agree` {
             @Test func `Boundary verbs agree`() throws {
@@ -48,9 +48,9 @@ extension `Serialization Equivalence Tests` {
                 #expect(ascii.map(\.byte) == wire)
             }
         }
-}
+    }
 
-extension `Serialization Equivalence Tests` {
+    extension `Serialization Equivalence Tests` {
         @Suite
         struct `Binary serialization round-trips` {
             @Test func `Content round-trips through the binary verb`() {
@@ -94,5 +94,5 @@ extension `Serialization Equivalence Tests` {
                 #expect(reparsed.contentType == original.contentType)
             }
         }
-}
+    }
 #endif

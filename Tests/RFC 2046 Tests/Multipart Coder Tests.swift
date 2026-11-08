@@ -4,9 +4,9 @@
     import RFC_2046
     import Testing
 
-enum `Multipart Coder Tests` {}
+    enum `Multipart Coder Tests` {}
 
-extension `Multipart Coder Tests` {
+    extension `Multipart Coder Tests` {
         @Suite
         struct `Multipart - Delimiter recognition` {
             @Test
@@ -41,9 +41,9 @@ extension `Multipart Coder Tests` {
                 )
             }
         }
-}
+    }
 
-extension `Multipart Coder Tests` {
+    extension `Multipart Coder Tests` {
         @Suite
         struct `Multipart - Byte-exact content` {
             @Test
@@ -117,9 +117,9 @@ extension `Multipart Coder Tests` {
                 #expect([Byte](reparsed) == wire)
             }
         }
-}
+    }
 
-extension `Multipart Coder Tests` {
+    extension `Multipart Coder Tests` {
         @Suite
         struct `Multipart - Coder witness` {
             @Test
@@ -163,5 +163,5 @@ extension `Multipart Coder Tests` {
                 #expect(coder.subtype == .related)
             }
         }
-}
+    }
 #endif

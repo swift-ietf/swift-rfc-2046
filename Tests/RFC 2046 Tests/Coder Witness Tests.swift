@@ -6,9 +6,9 @@
     import RFC_2046
     import Testing
 
-enum `Coder Witness Tests` {}
+    enum `Coder Witness Tests` {}
 
-extension `Coder Witness Tests` {
+    extension `Coder Witness Tests` {
         @Suite
         struct `Boundary - Coder witness` {
             @Test
@@ -37,9 +37,9 @@ extension `Coder Witness Tests` {
                 }
             }
         }
-}
+    }
 
-extension `Coder Witness Tests` {
+    extension `Coder Witness Tests` {
         @Suite
         struct `Multipart.Subtype - Coder witness` {
             @Test
@@ -51,9 +51,9 @@ extension `Coder Witness Tests` {
                 #expect(try RFC_2046.Multipart.Subtype.coder.parse(&input) == .formData)
             }
         }
-}
+    }
 
-extension `Coder Witness Tests` {
+    extension `Coder Witness Tests` {
         @Suite
         struct `BodyPart.Headers - Coder witness` {
             @Test
@@ -73,9 +73,9 @@ extension `Coder Witness Tests` {
                 #expect(parsed.contentTransferEncoding == headers.contentTransferEncoding)
             }
         }
-}
+    }
 
-extension `Coder Witness Tests` {
+    extension `Coder Witness Tests` {
         @Suite
         struct `BodyPart - Coder witness` {
             @Test
@@ -95,5 +95,5 @@ extension `Coder Witness Tests` {
                 #expect(parsed.contentType == part.contentType)
             }
         }
-}
+    }
 #endif
