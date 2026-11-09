@@ -66,7 +66,7 @@ extension `BodyPart.Headers Tests` {
                 custom: [RFC_5322.Header(name: .init("X-Custom"), value: .init("value"))]
             )
 
-            #expect(try headers.custom[.init("X-Custom")] == "value")
+            #expect(try headers.custom[.init("X-Custom")]?.rawValue == "value")
         }
     }
 }
