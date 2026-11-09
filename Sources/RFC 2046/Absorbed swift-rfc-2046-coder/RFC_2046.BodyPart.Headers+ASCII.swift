@@ -185,7 +185,7 @@
                     }
 
                 default:
-                    return custom[headerName]?.rawValue
+                    return custom[headerName]?.description
                 }
             }
             set {
