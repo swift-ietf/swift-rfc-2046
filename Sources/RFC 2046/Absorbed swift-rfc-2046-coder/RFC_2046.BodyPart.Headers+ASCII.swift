@@ -185,7 +185,7 @@
                     }
 
                 default:
-                    return custom[headerName]
+                    return custom[headerName]?.rawValue
                 }
             }
             set {
@@ -218,7 +218,7 @@
                     }
 
                 default:
-                    custom[headerName] = newValue
+                    custom[headerName] = newValue.flatMap { RFC_5322.Header.Value(rawValue: $0) }
                 }
             }
         }
